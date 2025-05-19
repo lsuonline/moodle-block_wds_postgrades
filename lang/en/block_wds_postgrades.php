@@ -48,3 +48,14 @@ $string['postgrades'] = 'Post Grades to Workday';
 $string['postgradessuccess'] = 'Grades successfully posted to Workday';
 $string['postgradefailed'] = 'Failed to post grades to Workday';
 $string['postgradeservererror'] = 'Server error occurred while posting grades: {$a}';
+
+// Results page stuffs.
+$string['postgraderesults'] = 'Grade Posting Results';
+$string['errordetails'] = 'Error Details';
+$string['successdetails'] = 'Successfully Posted Grades';
+$string['errormessage'] = 'Error Message';
+$string['status'] = 'Status';
+$string['gradeposted'] = 'Grade posted successfully';
+$string['unknownerror'] = 'Unknown error occurred';
+$string['sectionlisting'] = 'Section Listing: {$a}';
+$string['sectiongraded'] = 'All students already have grades for the section {$a}.';

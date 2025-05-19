@@ -249,8 +249,8 @@ class wdspg {
         // Build out the xml.
         $xml = self::buildsoapxml($s, $grades, $gradetype, $sectionlistingid);
 
-        // Workday API credentials.
-        $username = $s->username . "@lsu14";
+        // Workday API credentials. TODO: Update to lsu14!!!
+        $username = $s->username . "@lsu";
         $password = $s->password;
 
         $version = "v" . $s->apiversion;
@@ -355,8 +355,8 @@ class wdspg {
             $bpparms = "";
         }
 
-        // Workday API credentials.
-        $username = $s->username . "@lsu14";
+        // Workday API credentials. TODO: Update to lsu14!!!
+        $username = $s->username . "@lsu";
         $password = $s->password;
         $version = "v" . $s->apiversion;
 

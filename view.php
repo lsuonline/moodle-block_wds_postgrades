@@ -51,13 +51,13 @@ $enrolledstudents = \block_wds_postgrades\wdspg::get_enrolled_students($courseid
 
 // Process form submission if the post grades action is triggered.
 if ($action === 'postgrades' && confirm_sesskey()) {
+
     // Check if user has capability to post grades.
     require_capability('block/wds_postgrades:post', $PAGE->context);
 
     // Array to store the grade objects.
     $grades = array();
 
-    // Get section listing ID from the first student (assuming all students in this view are from the same section).
     $sectionlistingid = '';
     if (!empty($enrolledstudents)) {
         $firststudent = reset($enrolledstudents);
@@ -66,6 +66,7 @@ if ($action === 'postgrades' && confirm_sesskey()) {
 
     // Process each student's grade.
     foreach ($enrolledstudents as $student) {
+
         // Get the student's formatted grade.
         $finalgrade = \block_wds_postgrades\wdspg::get_formatted_grade($student->coursegradeitem, $student->userid, $courseid);
 
@@ -82,27 +83,72 @@ if ($action === 'postgrades' && confirm_sesskey()) {
         $grades[] = $gradeobj;
     }
 
-/*
-echo"<pre>";
-var_dump($grades);
-echo"</pre>";
-die();
-*/
-
     // Now post the grades to Workday.
-    $result = \block_wds_postgrades\wdspg::post_grade($grades, 'interim', $sectionlistingid);
+    $gradetype = 'interim';
+    $result = \block_wds_postgrades\wdspg::post_grade($grades, $gradetype, $sectionlistingid);
+
+    // Create results URL with appropriate parameters.
+    $resultsurl = new moodle_url('/blocks/wds_postgrades/results.php', ['courseid' => $courseid]);
+
+    // Prepare to store detailed results.
+    $resultdata = new stdClass();
 
     // Handle response/result.
     if ($result === 'error') {
-        \core\notification::error(get_string('postgradefailed', 'block_wds_postgrades'));
+        $resultsurl->param('resulttype', 'error');
     } else if (is_object($result) && isset($result->error)) {
-        \core\notification::error(get_string('postgradeservererror', 'block_wds_postgrades', $result->error));
+        $resultsurl->param('resulttype', 'error');
+        $resultsurl->param('errorcode', $result->error);
+
+        // Process detailed errors.
+        if (isset($result->xmlstring)) {
+            $errors = \block_wds_postgrades\wdspg::parseerrors($result->xmlstring);
+
+            // Check for section status issues.
+            $sectionstatus = \block_wds_postgrades\wdspg::pg_section_status($result->xmlstring);
+
+            if ($sectionstatus) {
+                $resultdata->section_status = get_string('sectiongraded', 'block_wds_postgrades', $sectionlistingid);
+            }
+
+            // Process error details.
+            if (!empty($errors)) {
+                $failures = array();
+                $successful = array();
+
+                foreach ($errors as $error) {
+                    $errindex = $error->index;
+
+                    if (is_numeric($errindex)) {
+
+                        // Build the new object for the failure.
+                        $stugrade = clone $grades[$errindex - 1];
+                        $stugrade->errormessage = $error->message;
+                        $failures[] = $stugrade;
+
+                        // Remove this grade from the successful grades.
+                        unset($grades[$errindex - 1]);
+                    }
+                }
+
+                // Store failures and successes.
+                $resultdata->errors = $failures;
+
+                // Reindex array.
+                $resultdata->successes = array_values($grades);
+            }
+        }
     } else {
-        \core\notification::success(get_string('postgradessuccess', 'block_wds_postgrades'));
+        $resultsurl->param('resulttype', 'success');
+        $resultsurl->param('sectionlistingid', $sectionlistingid);
+        $resultdata->successes = $grades;
     }
 
-    // Redirect back to the same page to prevent form resubmission.
-    redirect(new moodle_url('/blocks/wds_postgrades/view.php', ['courseid' => $courseid]));
+    // Store result data in session for the results page.
+    $SESSION->wds_postgrades_results = $resultdata;
+
+    // Redirect to the results page.
+    redirect($resultsurl);
 }
 
 // Start output.
