@@ -37,6 +37,95 @@ require_once($CFG->dirroot . '/grade/report/lib.php');
  */
 class wdspg {
 
+    public static function pg_section_status($errors) {
+
+        // TODO: WTF am I going to do with this? There are actually 3 of these potential messages and I probably have to deal with all of them.
+        $searchmessage1 = "The Student Course Section for the Section Listing must have already started to be valid for grading.";
+        $searchmessage2 = "The Student Course Section for the Section Listing must be of the Instructional Format that controls grading.";
+        $searchmessage3 = "The Student Course Section for the Section Listing must have Registered Student Course Registrations for grading.";
+
+        // Load the XML string.
+        $xml = simplexml_load_string($errors, null, LIBXML_NOCDATA);
+
+        // Register the namespaces for XPath.
+        $xml->registerXPathNamespace('SOAP-ENV', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $xml->registerXPathNamespace('wd', 'urn:com.workday/bsvc');
+
+        // Use XPath to find all <wd:Message> elements that contain the error message.
+        $messages = $xml->xpath('//wd:Message');
+
+        $found = false;
+
+        // Loop through all messages to check if the target message exists.
+        foreach ($messages as $message) {
+            if ((string)$message == $searchmessage1) {
+                $found = true;
+                break;
+            }
+        }
+
+        // Return true if found, false otherwise.
+        return $found ? "true" : "false";
+    }
+
+    public static function parseerrors($data) {
+
+        // Load the XML string into a SimpleXML object.
+        $xml = simplexml_load_string($data, null, LIBXML_NOCDATA);
+
+        // Register the namespaces for XPath.
+        $xml->registerXPathNamespace('SOAP-ENV', 'http://schemas.xmlsoap.org/soap/envelope/');
+        $xml->registerXPathNamespace('wd', 'urn:com.workday/bsvc');
+
+        // Find all Validation_Error elements.
+        $errors = $xml->xpath('//wd:Validation_Error');
+
+        // Initialize an array to store the results.
+        $results = [];
+
+        foreach ($errors as $error) {
+
+            // Build out the object for inclusion in the array.
+            $returnerror = new \stdClass();
+
+            // Get the message and xpath values.
+            $message = (string) $error->xpath('wd:Message')[0];
+            $xpath = (string) $error->xpath('wd:Xpath')[0];
+
+            // Extract the index from the XPath.
+            preg_match('/Student_Grades_Data\[(\d+)\]/', $xpath, $matches);
+
+            if (isset($matches[1])) {
+
+                // The index inside the Student_Grades_Data[X].
+                $index = $matches[1];
+            } else {
+
+                // In case we don't find the expected index.
+                $index = 'unknown';
+            }
+
+            // Build out the returnerror object.
+            $returnerror->index = $index;
+            $returnerror->message = $message;
+
+            // Store the result in the array.
+            $results[] = $returnerror;
+        }
+
+        // Return the results.
+        return $results;
+    }
+
+
+
+
+
+
+
+
+
+
     /**
      * Builds the XML structure for student grades to be posted to Workday.
      *
@@ -131,7 +220,7 @@ class wdspg {
      * @return @object $s
      */
     public static function get_settings() {
-        $s = new stdClass();
+        $s = new \stdClass();
 
         // Get the settings.
         $s = get_config('enrol_workdaystudent');
@@ -275,7 +364,7 @@ class wdspg {
         $gradesxml = self::buildgradestopost($grades, $gradetype);
 
         // Create SOAP Envelope.
-        $xml = new SimpleXMLElement('<env:Envelope
+        $xml = new \SimpleXMLElement('<env:Envelope
             xmlns:env="http://schemas.xmlsoap.org/soap/envelope/"
             xmlns:xsd="http://www.w3.org/2001/XMLSchema"
             xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd">
@@ -331,7 +420,7 @@ class wdspg {
         $xmlstring = preg_replace('/\{[^}]*\}/', '', $xmlstring);
 
         // Ensure that the XML is well-formed using DOMDocument.
-        $dom = new DOMDocument('1.0', 'UTF-8');
+        $dom = new \DOMDocument('1.0', 'UTF-8');
 
         // Suppress warnings to handle them programmatically.
         libxml_use_internal_errors(true);
@@ -543,6 +632,83 @@ class wdspg {
                 'grading_scheme_id' => $student->grading_scheme,
                 'grading_basis' => $student->grading_basis,
                 'grade_display' => 'Audit'
+            ];
+
+        // Non-credit / Creditors.
+        } else if ($student->grading_basis == 'Credit/Non Credit') {
+
+            if ($student->grading_scheme == 'LSUAM Standard Grading Scheme') {
+
+                // Build out an array for passing grades.
+                $keywordarray = [
+                    'A+' => 'Pass',
+                    'A' => 'Pass',
+                    'A-' => 'Pass',
+                    'B+' => 'Pass',
+                    'B' => 'Pass',
+                    'B-' => 'Pass',
+                    'C+' => 'Pass',
+                    'C' => 'Pass',
+                    'Pass' => 'Pass',
+                    'C-' => 'In Progess',
+                    'D+' => 'In Progess',
+                    'D' => 'In Progess',
+                    'D-' => 'In Progess',
+                    'F' => 'In Progess',
+                    'Fail' => 'In Progess'
+                ];
+            } else if ($student->grading_scheme == 'LSUAM Honors Grading Scheme') {
+
+                // Build out an array for passing grades.
+                $keywordarray = [
+                    'A+' => 'Pass',
+                    'A' => 'Pass',
+                    'A-' => 'Pass',
+                    'B+' => 'Pass',
+                    'B' => 'Pass',
+                    'B-' => 'Pass',
+                    'C+' => 'Pass',
+                    'C' => 'Pass',
+                    'Pass' => 'Pass',
+                    'C-' => 'No Credit (HNR)',
+                    'D+' => 'No Credit (HNR)',
+                    'D' => 'No Credit (HNR)',
+                    'D-' => 'No Credit (HNR)',
+                    'F' => 'No Credit (HNR)',
+                    'Fail' => 'No Credit (HNR)'
+                ];
+
+            // I have no idea what to do here.
+            } else {
+
+                // Build out an array for passing grades.
+                $keywordarray = [
+                    'A+' => 'Pass',
+                    'A' => 'Pass',
+                    'A-' => 'Pass',
+                    'B+' => 'Pass',
+                    'B' => 'Pass',
+                    'B-' => 'Pass',
+                    'C+' => 'Pass',
+                    'C' => 'Pass',
+                    'Pass' => 'Pass',
+                    'C-' => 'In Progess',
+                    'D+' => 'In Progess',
+                    'D' => 'In Progess',
+                    'D-' => 'In Progess',
+                    'F' => 'In Progess',
+                    'Fail' => 'In Progess'
+                ];
+            }
+
+            // Get the appropriate keyword to use to look up the code.
+            $cncletter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+
+            // Build out the parms for the PF codes.
+            $parms = [
+                'grading_scheme_id' => $student->grading_scheme,
+                'grading_basis' => $student->grading_basis,
+                'grade_display' => $cncletter
             ];
         }
 

@@ -41,3 +41,10 @@ $string['viewgrades'] = 'View Final Grades';
 $string['gradesfor'] = 'Final Grades for {$a}';
 $string['viewgradesfor'] = 'View Final Grades for {$a}';
 $string['backtocourse'] = 'Back to course';
+
+// Form stuffs.
+$string['wds_postgrades:post'] = 'Post grades to Workday Student';
+$string['postgrades'] = 'Post Grades to Workday';
+$string['postgradessuccess'] = 'Grades successfully posted to Workday';
+$string['postgradefailed'] = 'Failed to post grades to Workday';
+$string['postgradeservererror'] = 'Server error occurred while posting grades: {$a}';

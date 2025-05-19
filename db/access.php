@@ -37,6 +37,16 @@ $capabilities = [
         'clonepermissionsfrom' => 'moodle/site:manageblocks'
     ],
 
+    'block/wds_postgrades:post' => [
+        'riskbitmask' => RISK_PERSONAL | RISK_DATALOSS,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW
+        ]
+    ],
+
     'block/wds_postgrades:view' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
