@@ -69,3 +69,19 @@ $string['individualsections'] = 'Post grades by section';
 $string['postgradesfor'] = 'Post Grades for {$a->sectiontitle}';
 $string['viewgradesfor'] = 'View Grades for {$a->sectiontitle}';
 $string['section'] = 'Section';
+
+// Settings strings.
+$string['interimgradesettings'] = 'Interim Grades Settings';
+$string['periodheading'] = 'Academic Period: {$a}';
+$string['perioddescription'] = 'Configure the start and end dates for posting interim grades during this academic period.';
+$string['periodstartdate'] = 'Start date';
+$string['periodstartdatedesc'] = 'The date and time when posting interim grades becomes available.';
+$string['periodenddate'] = 'End date';
+$string['periodenddatedesc'] = 'The date and time when posting interim grades is no longer available.';
+$string['noperiods'] = 'No Active Academic Periods';
+$string['noperiodsdesc'] = 'No active academic periods were found. Settings will appear when active periods are available.';
+$string['interimgradesnotconfigured'] = 'Interim grades posting dates have not been configured for this period.';
+$string['interimgradesnotavailable'] = 'Interim grades posting is currently not available for this section.';
+$string['interimgradesfuture'] = 'Interim grades posting will be available in {$a}.';
+$string['interimgradespast'] = 'Interim grades posting is no longer available for this period.';
+$string['interimgradesopen'] = 'Interim grades posting is available. Time remaining: {$a}.';

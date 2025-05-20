@@ -46,7 +46,7 @@ class block_wds_postgrades extends block_base {
      * @return boolean True if the block has settings.
      */
     public function has_config() {
-        return false;
+        return true;
     }
 
     /**

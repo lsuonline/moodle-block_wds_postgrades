@@ -238,30 +238,44 @@ die();
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $stringvar));
 
-// Start form.
-$formaction = new moodle_url('/blocks/wds_postgrades/view.php');
-echo html_writer::start_tag('form', ['method' => 'post', 'action' => $formaction]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sectionid', 'value' => $sectionid]);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'postgrades']);
-echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+// Check if interim grades posting is allowed for this period.
+$academicperiodid = $section->academic_period_id;
+$isinterimopen = \block_wds_postgrades\period_settings::is_interim_grading_open($academicperiodid);
+$interimstatus = \block_wds_postgrades\period_settings::get_interim_grading_status($academicperiodid);
 
-// Generate and output the table.
-$tablehtml = \block_wds_postgrades\wdspg::generate_grades_table($enrolledstudents, $courseid);
-echo $tablehtml;
+// Display status message about interim grades availability.
+echo $OUTPUT->notification($interimstatus, $isinterimopen ? 'info' : 'warning');
 
-// Add a container for buttons.
-echo html_writer::start_div('buttons');
+// Only show the form if interim grades are available.
+if ($isinterimopen) {
 
-// Post Grades button (only visible if user has the capability to post grades).
-if (has_capability('block/wds_postgrades:post', $PAGE->context) && !empty($enrolledstudents)) {
-    echo html_writer::tag('button', get_string('postgrades', 'block_wds_postgrades'),
-        ['type' => 'submit', 'class' => 'btn btn-primary']);
-    echo ' ';
+    // Start form.
+    $formaction = new moodle_url('/blocks/wds_postgrades/view.php');
+    echo html_writer::start_tag('form', ['method' => 'post', 'action' => $formaction]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sectionid', 'value' => $sectionid]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'postgrades']);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+
+    // Generate and output the table.
+    $tablehtml = \block_wds_postgrades\wdspg::generate_grades_table($enrolledstudents, $courseid);
+    echo $tablehtml;
+
+    // Add a container for buttons.
+    echo html_writer::start_div('buttons');
+
+    // Post Grades button (only visible if user has the capability to post grades).
+    if (has_capability('block/wds_postgrades:post', $PAGE->context) && !empty($enrolledstudents)) {
+        echo html_writer::tag('button', get_string('postgrades', 'block_wds_postgrades'),
+            ['type' => 'submit', 'class' => 'btn btn-primary']);
+        echo ' ';
+    }
+
+    // End the form.
+    echo html_writer::end_tag('form');
+} else {
+    echo $OUTPUT->notification(get_string('interimgradesnotavailable', 'block_wds_postgrades'), 'error');
 }
-
-// End the form.
-echo html_writer::end_tag('form');
 
 // Back to course button (outside the form).
 $courseurl = new moodle_url('/blocks/wds_postgrades/view.php',
