@@ -86,3 +86,10 @@ $string['interimgradesnotavailable'] = 'Interim grades posting is currently not 
 $string['interimgradesfuture'] = 'Interim grades posting will be available in {$a}.';
 $string['interimgradespast'] = 'Interim grades posting is no longer available for this period.';
 $string['interimgradesopen'] = 'Interim grades posting is available. Time remaining: {$a}.';
+
+// Period configuration page strings
+$string['periodconfig'] = 'Grading Period Configuration';
+$string['endbeforestart'] = 'End date must be after start date';
+$string['changessaved'] = 'Changes saved successfully';
+$string['periodconfiglinktext'] = 'Configure Grading Periods';
+$string['managegradeperiods'] = 'Manage Grade Posting Periods';

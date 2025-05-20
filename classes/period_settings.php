@@ -65,17 +65,17 @@ class period_settings {
      * @return bool True if interim grades are allowed at the current time.
      */
     public static function is_interim_grading_open($academicperiodid) {
+        global $DB;
 
-        // Get the configured start and end times for this period.
-        $starttime = get_config('block_wds_postgrades', 'period_' . $academicperiodid . '_start');
-        $endtime = get_config('block_wds_postgrades', 'period_' . $academicperiodid . '_end');
+        // Get the configured start and end times for this period from our custom table.
+        $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
 
         // Get current time.
         $currenttime = time();
 
-        // Check if current time is within the allowed range.
-        if ($starttime && $endtime) {
-            return ($currenttime >= $starttime && $currenttime <= $endtime);
+        // Check if record exists and current time is within the allowed range.
+        if ($record && $record->start_time && $record->end_time) {
+            return ($currenttime >= $record->start_time && $currenttime <= $record->end_time);
         }
 
         // Default to false if settings are not configured.
@@ -89,23 +89,23 @@ class period_settings {
      * @return string Status message.
      */
     public static function get_interim_grading_status($academicperiodid) {
+        global $DB;
 
-        // Get the configured start and end times for this period.
-        $starttime = get_config('block_wds_postgrades', 'period_' . $academicperiodid . '_start');
-        $endtime = get_config('block_wds_postgrades', 'period_' . $academicperiodid . '_end');
+        // Get the configured start and end times from our custom table.
+        $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
 
         // Get current time.
         $currenttime = time();
 
-        if (!$starttime || !$endtime) {
+        if (!$record || !$record->start_time || !$record->end_time) {
             return get_string('interimgradesnotconfigured', 'block_wds_postgrades');
-        } else if ($currenttime < $starttime) {
-            $timeuntilstart = format_time($starttime - $currenttime);
+        } else if ($currenttime < $record->start_time) {
+            $timeuntilstart = format_time($record->start_time - $currenttime);
             return get_string('interimgradesfuture', 'block_wds_postgrades', $timeuntilstart);
-        } else if ($currenttime > $endtime) {
+        } else if ($currenttime > $record->end_time) {
             return get_string('interimgradespast', 'block_wds_postgrades');
         } else {
-            $timeuntilend = format_time($endtime - $currenttime);
+            $timeuntilend = format_time($record->end_time - $currenttime);
             return get_string('interimgradesopen', 'block_wds_postgrades', $timeuntilend);
         }
     }

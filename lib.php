@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings for the WDS Post Grades block.
+ * Library functions for WDS Post Grades block.
  *
  * @package    block_wds_postgrades
  * @copyright  2025 onwards Louisiana State University
@@ -25,30 +25,35 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-if ($ADMIN->fulltree) {
+/**
+ * Function to extend the block settings navigation.
+ *
+ * @param settings_navigation $settingsnav The settings navigation object.
+ * @param context $context The context.
+ */
+function block_wds_postgrades_extend_settings_navigation($settingsnav, $context) {
+    global $PAGE;
 
-    // Add a link to the period configuration page.
-    $settings->add(new admin_setting_heading(
-        'block_wds_postgrades/periodconfig',
-        get_string('settings', 'block_wds_postgrades'),
-        ''
-    ));
+    // Only add this settings item on non-site course pages.
+    if (!$PAGE->course or $PAGE->course->id == SITEID) {
+        return;
+    }
 
-    // Register the external page for period configuration.
+    // Only let users with the appropriate capability see this settings item.
+    if (!has_capability('moodle/backup:backupcourse', $context)) {
+        return;
+    }
+}
+
+/**
+ * Add external page to the admin menu.
+ *
+ * @param admin_root $admin The admin root object.
+ */
+function block_wds_postgrades_admin_menu($admin) {
     $ADMIN->add('blocksettings', new admin_externalpage(
-        'block_wds_postgrades_periodconfig',
-        get_string('periodconfig', 'block_wds_postgrades'),
+        'blockwdspostgradesperiodconfig',
+        get_string('managegradeperiods', 'block_wds_postgrades'),
         new moodle_url('/blocks/wds_postgrades/period_config.php')
     ));
-
-/*
-    // Create a link to the period configuration page.
-    $periodconfigurl = new moodle_url('/blocks/wds_postgrades/period_config.php');
-    $settings->add(new admin_setting_description(
-        'block_wds_postgrades/periodconfiglink',
-        '',
-        html_writer::link($periodconfigurl, get_string('periodconfiglinktext', 'block_wds_postgrades'),
-            ['class' => 'btn btn-primary'])
-    ));
-*/
 }

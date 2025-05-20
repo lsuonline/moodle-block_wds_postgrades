@@ -25,8 +25,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2025051901;
+$plugin->version   = 2025051902;
 $plugin->requires  = 2023100900;
 $plugin->component = 'block_wds_postgrades';
-$plugin->maturity  = MATURITY_ALPHA;
-$plugin->release   = '0.2.0';
+$plugin->maturity  = MATURITY_BETA;
+$plugin->release   = '0.5.0';

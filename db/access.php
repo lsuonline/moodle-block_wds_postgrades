@@ -47,6 +47,15 @@ $capabilities = [
         ]
     ],
 
+    'block/wds_postgrades:manageperiods' => [
+        'riskbitmask' => RISK_CONFIG,
+        'captype' => 'write',
+        'contextlevel' => CONTEXT_SYSTEM,
+        'archetypes' => [
+            'manager' => CAP_ALLOW
+        ]
+    ],
+
     'block/wds_postgrades:view' => [
         'riskbitmask' => RISK_PERSONAL,
         'captype' => 'read',
