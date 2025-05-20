@@ -615,13 +615,13 @@ class wdspg {
             ];
 
             // Get the appropriate keyword to use to look up the code.
-            $pfletter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+            $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
 
             // Build out the parms for the PF codes.
             $parms = [
                 'grading_scheme_id' => $student->grading_scheme,
                 'grading_basis' => $student->grading_basis,
-                'grade_display' => $pfletter
+                'grade_display' => $letter
             ];
 
         // Auditors.
@@ -657,6 +657,18 @@ class wdspg {
                     'F' => 'In Progess',
                     'Fail' => 'In Progess'
                 ];
+
+                // Get the appropriate keyword to use to look up the code.
+                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+
+                // Build out the parms for the codes.
+                $parms = [
+                    'grading_scheme_id' => $student->grading_scheme,
+                    'grading_basis' => $student->grading_basis,
+                    'grade_display' => $letter
+                ];
+
+            // Honors.
             } else if ($student->grading_scheme == 'LSUAM Honors Grading Scheme') {
 
                 // Build out an array for passing grades.
@@ -676,6 +688,16 @@ class wdspg {
                     'D-' => 'No Credit (HNR)',
                     'F' => 'No Credit (HNR)',
                     'Fail' => 'No Credit (HNR)'
+                ];
+
+                // Get the appropriate keyword to use to look up the code.
+                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+
+                // Build out the parms for the codes.
+                $parms = [
+                    'grading_scheme_id' => $student->grading_scheme,
+                    'grading_basis' => $student->grading_basis,
+                    'grade_display' => $letter
                 ];
 
             // I have no idea what to do here.
@@ -699,17 +721,17 @@ class wdspg {
                     'F' => 'In Progess',
                     'Fail' => 'In Progess'
                 ];
+
+                // Get the appropriate keyword to use to look up the code.
+                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+
+                // Build out the parms for the codes.
+                $parms = [
+                    'grading_scheme_id' => $student->grading_scheme,
+                    'grading_basis' => $student->grading_basis,
+                    'grade_display' => $letter
+                ];
             }
-
-            // Get the appropriate keyword to use to look up the code.
-            $cncletter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
-
-            // Build out the parms for the PF codes.
-            $parms = [
-                'grading_scheme_id' => $student->grading_scheme,
-                'grading_basis' => $student->grading_basis,
-                'grade_display' => $cncletter
-            ];
         }
 
         // Get the data.
