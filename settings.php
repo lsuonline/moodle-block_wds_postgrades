@@ -27,32 +27,4 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
 
-    // Create the interim settings page.
-    $settings = new admin_settingpage(
-        'block_wds_postgrades_settings',
-        get_string('settings', 'block_wds_postgrades')
-    );
-
-    // Fetch active academic periods using standard Moodle DB methods.
-    $periods = \block_wds_postgrades\period_settings::get_active_periods();
-
-    // For each period, add date settings.
-    if (!empty($periods)) {
-        foreach ($periods as $period) {
-
-            // Create a heading for each academic period.
-            $settings->add(new admin_setting_heading(
-                'period_' . $period->academic_period_id,
-                get_string('periodheading', 'block_wds_postgrades', $period->academic_period_id),
-                get_string('perioddescription', 'block_wds_postgrades')
-            ));
-        }
-    } else {
-        // Display a message if no active periods are found.
-        $settings->add(new admin_setting_heading(
-            'no_periods',
-            get_string('noperiods', 'block_wds_postgrades'),
-            get_string('noperiodsdesc', 'block_wds_postgrades')
-        ));
-    }
 }
