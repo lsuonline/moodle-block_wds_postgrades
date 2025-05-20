@@ -28,18 +28,21 @@ $string['wds_postgrades:addinstance'] = 'Add a new WDS Post Grades block.';
 $string['wds_postgrades:view'] = 'View WDS Post Grades block.';
 $string['firstname'] = 'First Name';
 $string['lastname'] = 'Last Name';
+$string['fullname'] = 'Student';
 $string['universalid'] = 'Universal ID';
 $string['gradingscheme'] = 'Grading Scheme';
 $string['gradingbasis'] = 'Grading Basis';
-$string['finalgrade'] = 'Workday Final Grade';
+$string['grade'] = 'Workday Grade';
+$string['finalgrade'] = 'Workday {$a->typeword} Grade';
 $string['gradecode'] = 'Workday Grade Code';
 $string['nograde'] = 'No grade';
+$string['letter'] = 'Letter grade';
 $string['nopermission'] = 'You do not have permission to view this information.';
 $string['nostudents'] = '<strong>No graded students found in this course. Please add grades to the course.</strong>';
 $string['nocoursegrade'] = 'No course grade item found.';
-$string['viewgrades'] = 'View Final Grades';
-$string['gradesfor'] = 'Final Grades for {$a}';
-$string['viewgradesfor'] = 'View Final Grades for {$a}';
+$string['viewgrades'] = 'View {$a->typeword} Grades';
+$string['gradesfor'] = '{$a->typeword} Grades for {$a->sectiontitle}';
+$string['viewgradesfor'] = 'View {$a->typeword} Grades for {$a->sectiontitle}';
 $string['backtocourse'] = 'Back to course';
 
 // Form stuffs.
@@ -47,7 +50,7 @@ $string['wds_postgrades:post'] = 'Post grades to Workday Student';
 $string['postgrades'] = 'Post Grades to Workday';
 $string['postgradessuccess'] = 'Grades successfully posted to Workday';
 $string['postgradefailed'] = 'Failed to post grades to Workday';
-$string['postgradeservererror'] = 'Server error occurred while posting grades: {$a}';
+$string['postgradeservererror'] = 'Server error occurred while posting grades: {$a->sectiontitle}';
 
 // Results page stuffs.
 $string['postgraderesults'] = 'Grade Posting Results';
@@ -57,13 +60,12 @@ $string['errormessage'] = 'Error Message';
 $string['status'] = 'Status';
 $string['gradeposted'] = 'Grade posted successfully';
 $string['unknownerror'] = 'Unknown error occurred';
-$string['sectionlisting'] = 'Section Listing: {$a}';
-$string['sectiongraded'] = 'All students already have grades for the section {$a}.';
+$string['sectionlisting'] = 'Section Listing: {$a->sectiontitle}';
+$string['sectiongraded'] = 'All students already have grades for the section {$a->sectiontitle}.';
 
 // Multiple section postings.
 $string['postallgrades'] = 'Post all course grades';
 $string['individualsections'] = 'Post grades by section';
-$string['postgradesfor'] = 'Post Grades for {$a}';
-$string['viewgradesfor'] = 'View Grades for {$a}';
+$string['postgradesfor'] = 'Post Grades for {$a->sectiontitle}';
+$string['viewgradesfor'] = 'View Grades for {$a->sectiontitle}';
 $string['section'] = 'Section';
-$string['postgradesfor'] = 'Post Grades for {$a}';

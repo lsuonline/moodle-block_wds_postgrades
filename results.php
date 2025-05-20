@@ -33,6 +33,13 @@ $resulttype = optional_param('resulttype', '', PARAM_ALPHA);
 $errorcode = optional_param('errorcode', '', PARAM_TEXT);
 $sectionlistingid = optional_param('sectionlistingid', '', PARAM_TEXT);
 $sectiontitle = optional_param('sectiontitle', '', PARAM_TEXT);
+$typeword = optional_param('typeword', '', PARAM_TEXT);
+
+$stringvar = [
+    'sectiontitle' => $sectiontitle,
+    'typeword' => $typeword
+];
+
 
 // Session data for passing complex information.
 $resultdata = null;
@@ -53,8 +60,8 @@ $PAGE->set_course($course);
 $PAGE->set_pagelayout('standard');
 
 // Set title.
-$PAGE->set_title(get_string('postgradesfor', 'block_wds_postgrades', $sectiontitle));
-$PAGE->set_heading(get_string('postgradesfor', 'block_wds_postgrades', $sectiontitle));
+$PAGE->set_title(get_string('postgradesfor', 'block_wds_postgrades', $stringvar));
+$PAGE->set_heading(get_string('postgradesfor', 'block_wds_postgrades', $stringvar));
 $PAGE->navbar->add(get_string('pluginname', 'block_wds_postgrades'));
 $PAGE->navbar->add(get_string('postgraderesults', 'block_wds_postgrades'));
 
@@ -80,7 +87,7 @@ if ($resulttype === 'error') {
 if ($resultdata) {
 
     // Section information.
-    echo html_writer::tag('p', get_string('sectionlisting', 'block_wds_postgrades', $sectionlistingid));
+    echo html_writer::tag('p', get_string('sectionlisting', 'block_wds_postgrades', $stringvar));
 
     // If there are errors to display.
     if (isset($resultdata->errors) && !empty($resultdata->errors)) {
@@ -116,15 +123,25 @@ if ($resultdata) {
         $table = new html_table();
         $table->attributes['class'] = 'wdspgrades generaltable';
         $table->head = [
+            get_string('fullname', 'block_wds_postgrades'),
             get_string('universalid', 'block_wds_postgrades'),
-            get_string('gradecode', 'block_wds_postgrades'),
+            get_string('grade', 'block_wds_postgrades'),
             get_string('status', 'block_wds_postgrades')
         ];
 
         foreach ($resultdata->successes as $success) {
+
+/*
+echo"<pre>";
+var_dump($success);
+echo"</pre>";
+die();
+*/
+
             $row = [];
+            $row[] = $success->student_fullname;
             $row[] = $success->universal_id;
-            $row[] = $success->grade_id;
+            $row[] = $success->grade_display;
             $row[] = get_string('gradeposted', 'block_wds_postgrades');
             $table->data[] = $row;
         }
@@ -147,7 +164,7 @@ echo html_writer::start_div('buttons');
 $viewurl = new moodle_url(
     '/blocks/wds_postgrades/view.php',
     ['courseid' => $courseid, 'sectionid' => $sectionid]);
-echo $OUTPUT->single_button($viewurl, get_string('viewgrades', 'block_wds_postgrades'), 'get');
+echo $OUTPUT->single_button($viewurl, get_string('viewgrades', 'block_wds_postgrades', $stringvar), 'get');
 echo ' ';
 
 // Back to course button.

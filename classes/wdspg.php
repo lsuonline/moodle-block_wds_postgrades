@@ -481,6 +481,7 @@ die();
                 sec.course_subject_abbreviation,
                 cou.course_number,
                 sec.moodle_status AS courseid,
+                COALESCE(sm.data, 'Undergraduate') AS academic_level,
                 gi.id AS coursegradeitem
             FROM {course} c
             INNER JOIN {enrol_wds_sections} sec
@@ -498,8 +499,13 @@ die();
             INNER JOIN {grade_items} gi
                 ON gi.courseid = c.id
                 AND gi.itemtype = 'course'
+            LEFT JOIN {enrol_wds_students_meta} sm
+                ON sm.academic_period_id = sec.academic_period_id
+                AND stu.id = sm.studentid
+                AND sm.datatype = 'Academic_Level'
             WHERE
-                c.id = :courseid";
+                c.id = :courseid
+            ORDER BY stu.lastname ASC, stu.firstname ASC";
 
         // Get em.
         $enrollments = $DB->get_records_sql($sql, $parms);
@@ -769,12 +775,8 @@ die();
 
         if (count($gradecode) > 1) {
 
-echo"<pre>";
-var_dump($gradecode);
-echo"</pre>";
-mtrace("More than one record returned.");
-die();
-
+            mtrace("More than one record returned for $student->firstname $student->lastname in $student->course_section_definition_id");
+            $gradecode = false;
         } else {
             $gradecode = reset($gradecode);
         }
@@ -800,14 +802,14 @@ die();
             get_string('firstname', 'block_wds_postgrades'),
             get_string('lastname', 'block_wds_postgrades'),
             get_string('universalid', 'block_wds_postgrades'),
-            get_string('section', 'block_wds_postgrades'),
-            get_string('gradingscheme', 'block_wds_postgrades'),
+//            get_string('section', 'block_wds_postgrades'),
+//            get_string('gradingscheme', 'block_wds_postgrades'),
             get_string('gradingbasis', 'block_wds_postgrades'),
-            get_string('real', 'grades'),
-            get_string('percentage', 'grades'),
-            get_string('letter', 'grades'),
-            get_string('finalgrade', 'block_wds_postgrades'),
-            get_string('gradecode', 'block_wds_postgrades')
+//            get_string('real', 'grades'),
+//            get_string('percentage', 'grades'),
+            get_string('letter', 'block_wds_postgrades'),
+            get_string('grade', 'block_wds_postgrades'),
+//            get_string('gradecode', 'block_wds_postgrades')
         ];
 
         // Get course grade item from first student.
@@ -831,6 +833,12 @@ die();
             // Get the grade code.
             $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
 
+            // We have more than one gradecode for this person/grade, leave this place.
+            if (!$gradecode) {
+                mtrace("- Not processing $student->firstname $student->lastname.");
+                continue;
+            }
+
             // Section identifier.
             $sectionidentifier = $student->course_subject_abbreviation .
                 ' ' .
@@ -844,14 +852,14 @@ die();
                 $student->firstname,
                 $student->lastname,
                 $student->universal_id,
-                $sectionidentifier,
-                $student->grading_scheme,
+//                $sectionidentifier,
+//                $student->grading_scheme,
                 $student->grading_basis,
-                $finalgrade->real,
-                $finalgrade->percent,
+//                $finalgrade->real,
+//                $finalgrade->percent,
                 $finalgrade->letter,
                 $gradecode->grade_display,
-                $gradecode->grade_id,
+//                $gradecode->grade_id,
             ];
 
             // Populate it.

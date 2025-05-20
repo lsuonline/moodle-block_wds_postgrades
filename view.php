@@ -56,6 +56,22 @@ $sectiontitle = $section->course_subject_abbreviation .
     ' ' .
     $section->section_number;
 
+// Make sure we're setting this early enough.
+$gradetype = 'interim';
+
+// Build out the typeword for the lang string.
+If ($gradetype = 'interim') {
+    $typeword = 'Interim';
+} else {
+    $typeword = 'Final';
+}
+
+$stringvar = [
+    'coursename' => $course->fullname,
+    'sectiontitle' => $sectiontitle,
+    'typeword' => $typeword
+];
+
 // Setup page.
 $PAGE->set_url(new moodle_url('/blocks/wds_postgrades/view.php',
     ['courseid' => $courseid, 'sectionid' => $sectionid]));
@@ -64,8 +80,8 @@ $PAGE->set_course($course);
 $PAGE->set_pagelayout('standard');
 
 // Set appropriate title for a specific section.
-$PAGE->set_title(get_string('viewgradesfor', 'block_wds_postgrades', $sectiontitle));
-$PAGE->set_heading(get_string('viewgradesfor', 'block_wds_postgrades', $sectiontitle));
+$PAGE->set_title(get_string('viewgradesfor', 'block_wds_postgrades', $stringvar));
+//$PAGE->set_heading(get_string('viewgradesfor', 'block_wds_postgrades', $stringvar));
 
 $PAGE->navbar->add(get_string('pluginname', 'block_wds_postgrades'));
 $PAGE->navbar->add($sectiontitle);
@@ -106,6 +122,7 @@ if ($action === 'postgrades' && confirm_sesskey()) {
         $gradeobj = new stdClass();
         $gradeobj->section_listing_id = $student->section_listing_id;
         $gradeobj->universal_id = $student->universal_id;
+        $gradeobj->student_fullname = $student->firstname . ' ' . $student->lastname;
         $gradeobj->grade_id = $gradecode->grade_id;
         $gradeobj->grade_display = $gradecode->grade_display;
 
@@ -129,7 +146,6 @@ if ($action === 'postgrades' && confirm_sesskey()) {
 
             $gradeobj->wdladate = date('Y-m-d', $gradeobj->last_attendance_date);
         }
-
 /*
 echo"<pre>";
 var_dump($student);
@@ -143,7 +159,6 @@ die();
     }
 
     // Now post the grades to Workday.
-    $gradetype = 'interim';
     $result = \block_wds_postgrades\wdspg::post_grade($grades, $gradetype, $sectionlistingid);
 
     // Create results URL with appropriate parameters.
@@ -153,6 +168,7 @@ die();
 
     // Add section title for context in results page.
     $resultsurl->param('sectiontitle', $sectiontitle);
+    $resultsurl->param('typeword', $typeword);
 
     // Prepare to store detailed results.
     $resultdata = new stdClass();
@@ -220,7 +236,7 @@ die();
 
 // Start output.
 echo $OUTPUT->header();
-echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $course->fullname));
+echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $stringvar));
 
 // Start form.
 $formaction = new moodle_url('/blocks/wds_postgrades/view.php');
