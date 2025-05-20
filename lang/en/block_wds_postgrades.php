@@ -71,7 +71,7 @@ $string['viewgradesfor'] = 'View Grades for {$a->sectiontitle}';
 $string['section'] = 'Section';
 
 // Settings strings.
-$string['interimgradesettings'] = 'Interim Grades Settings';
+$string['settings'] = 'WDS Post Grades Settings';
 $string['periodheading'] = 'Academic Period: {$a}';
 $string['perioddescription'] = 'Configure the start and end dates for posting interim grades during this academic period.';
 $string['periodstartdate'] = 'Start date';
@@ -79,6 +79,7 @@ $string['periodstartdatedesc'] = 'The date and time when posting interim grades 
 $string['periodenddate'] = 'End date';
 $string['periodenddatedesc'] = 'The date and time when posting interim grades is no longer available.';
 $string['noperiods'] = 'No Active Academic Periods';
+$string['nogradepostingperiod'] = 'No active grade posting periods are available at this time.';
 $string['noperiodsdesc'] = 'No active academic periods were found. Settings will appear when active periods are available.';
 $string['interimgradesnotconfigured'] = 'Interim grades posting dates have not been configured for this period.';
 $string['interimgradesnotavailable'] = 'Interim grades posting is currently not available for this section.';
