@@ -35,7 +35,7 @@ $string['finalgrade'] = 'Workday Final Grade';
 $string['gradecode'] = 'Workday Grade Code';
 $string['nograde'] = 'No grade';
 $string['nopermission'] = 'You do not have permission to view this information.';
-$string['nostudents'] = 'No enrolled students found in this course.';
+$string['nostudents'] = '<strong>No graded students found in this course. Please add grades to the course.</strong>';
 $string['nocoursegrade'] = 'No course grade item found.';
 $string['viewgrades'] = 'View Final Grades';
 $string['gradesfor'] = 'Final Grades for {$a}';
@@ -59,3 +59,11 @@ $string['gradeposted'] = 'Grade posted successfully';
 $string['unknownerror'] = 'Unknown error occurred';
 $string['sectionlisting'] = 'Section Listing: {$a}';
 $string['sectiongraded'] = 'All students already have grades for the section {$a}.';
+
+// Multiple section postings.
+$string['postallgrades'] = 'Post all course grades';
+$string['individualsections'] = 'Post grades by section';
+$string['postgradesfor'] = 'Post Grades for {$a}';
+$string['viewgradesfor'] = 'View Grades for {$a}';
+$string['section'] = 'Section';
+$string['postgradesfor'] = 'Post Grades for {$a}';

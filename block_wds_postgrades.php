@@ -55,7 +55,7 @@ class block_wds_postgrades extends block_base {
      * @return stdClass The content object.
      */
     public function get_content() {
-        global $COURSE, $OUTPUT;
+        global $COURSE, $OUTPUT, $DB;
 
         if ($this->content !== null) {
             return $this->content;
@@ -72,14 +72,48 @@ class block_wds_postgrades extends block_base {
             return $this->content;
         }
 
-        // Create a link to the view page.
+        // Create a link to the view page for all sections
         $viewurl = new moodle_url('/blocks/wds_postgrades/view.php', ['courseid' => $COURSE->id]);
-        $linktext = get_string('viewgrades', 'block_wds_postgrades');
+        $linktext = get_string('postallgrades', 'block_wds_postgrades');
 
-        // Create a button to view grades.
-        $button = $OUTPUT->single_button($viewurl, $linktext, 'get', ['class' => 'wdspgradesbutton']);
+        // Get all sections for this course
+        $sql = "SELECT DISTINCT
+                sec.id,
+                sec.section_listing_id,
+                sec.section_number,
+                sec.course_subject_abbreviation,
+                cou.course_number
+            FROM {enrol_wds_sections} sec
+                INNER JOIN {enrol_wds_courses} cou
+                    ON cou.course_listing_id = sec.course_listing_id
+            WHERE sec.moodle_status = :courseid
+            ORDER BY sec.section_number";
 
-        $this->content->text = $button;
+        $sections = $DB->get_records_sql($sql, ['courseid' => $COURSE->id]);
+
+        $this->content->text .= html_writer::start_div('individual-sections');
+        $this->content->text .= html_writer::tag(
+            'h5',
+            get_string('individualsections', 'block_wds_postgrades')
+        );
+
+        foreach ($sections as $section) {
+            $sectionurl = new moodle_url('/blocks/wds_postgrades/view.php',
+                ['courseid' => $COURSE->id, 'sectionid' => $section->id]
+            );
+            $sectiontitle = $section->course_subject_abbreviation . ' ' .
+                $section->course_number . ' ' .
+                $section->section_number;
+            $sectionbutton = $OUTPUT->single_button(
+                $sectionurl,
+                $sectiontitle,
+                'get',
+                ['class' => 'wdspgradesbutton-section']
+            );
+            $this->content->text .= $sectionbutton;
+        }
+
+        $this->content->text .= html_writer::end_div();
 
         return $this->content;
     }

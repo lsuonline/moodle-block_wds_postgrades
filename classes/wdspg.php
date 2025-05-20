@@ -143,6 +143,13 @@ class wdspg {
         $studentgrades = '';
         foreach ($grades as $grade) {
 
+/*
+echo"<pre>";
+var_dump($grade);
+echo"</pre>";
+die();
+*/
+
             // Student Registration Data.
             $sectionlistingid = $grade->section_listing_id;
             $universalid = $grade->universal_id;
@@ -453,44 +460,67 @@ class wdspg {
      * @param @int $courseid The course ID.
      * @return @array The enrolled students data.
      */
-    public static function get_enrolled_students($courseid) {
+    public static function get_enrolled_students($courseid, $sectionid) {
         global $DB;
 
         // Build out the parms for getting students.
-        $params = ['courseid' => $courseid];
+        $parms = ['courseid' => $courseid, 'sectionid' => $sectionid];
 
         // The sql for getting students.
         $sql = "SELECT
-                    stuenr.id AS studentenrollid,
-                    COALESCE(stu.preferred_firstname, stu.firstname) AS firstname,
-                    COALESCE(stu.preferred_lastname, stu.lastname) AS lastname,
-                    u.id AS userid,
-                    stu.universal_id,
-                    stuenr.grading_scheme,
-                    stuenr.grading_basis,
-                    sec.course_section_definition_id,
-                    sec.section_listing_id,
-                    gi.id AS coursegradeitem
-                FROM {course} c
-                INNER JOIN {enrol_wds_sections} sec
-                    ON sec.moodle_status = c.id
-                INNER JOIN {enrol_wds_student_enroll} stuenr
-                    ON stuenr.section_listing_id = sec.section_listing_id
-                    AND stuenr.status = 'enrolled'
-                INNER JOIN {enrol_wds_students} stu
-                    ON stu.universal_id = stuenr.universal_id
-                INNER JOIN {user} u
-                    ON stu.userid = u.id
-                INNER JOIN {grade_items} gi
-                    ON gi.courseid = c.id
-                    AND gi.itemtype = 'course'
-                WHERE
-                    c.id = :courseid";
+                stuenr.id AS studentenrollid,
+                COALESCE(stu.preferred_firstname, stu.firstname) AS firstname,
+                COALESCE(stu.preferred_lastname, stu.lastname) AS lastname,
+                u.id AS userid,
+                stu.universal_id,
+                stuenr.grading_scheme,
+                stuenr.grading_basis,
+                sec.course_section_definition_id,
+                sec.section_listing_id,
+                sec.section_number,
+                sec.course_subject_abbreviation,
+                cou.course_number,
+                sec.moodle_status AS courseid,
+                gi.id AS coursegradeitem
+            FROM {course} c
+            INNER JOIN {enrol_wds_sections} sec
+                ON sec.moodle_status = c.id
+                AND sec.id = :sectionid
+            INNER JOIN {enrol_wds_courses} cou
+                ON cou.course_listing_id = sec.course_listing_id
+            INNER JOIN {enrol_wds_student_enroll} stuenr
+                ON stuenr.section_listing_id = sec.section_listing_id
+                AND stuenr.status = 'enrolled'
+            INNER JOIN {enrol_wds_students} stu
+                ON stu.universal_id = stuenr.universal_id
+            INNER JOIN {user} u
+                ON stu.userid = u.id
+            INNER JOIN {grade_items} gi
+                ON gi.courseid = c.id
+                AND gi.itemtype = 'course'
+            WHERE
+                c.id = :courseid";
 
         // Get em.
-        $enrollments = $DB->get_records_sql($sql, $params);
+        $enrollments = $DB->get_records_sql($sql, $parms);
 
         return $enrollments;
+    }
+
+    public static function get_wds_sla($userid, $courseid) {
+        global $DB;
+
+        // Set the table.
+        $slatable = 'user_lastaccess';
+
+        // Set the parms.
+        $slaparms = ['userid' => $userid, 'courseid' => $courseid];
+
+        // get the data.
+        $sla = $DB->get_record($slatable, $slaparms, '*');
+
+        // If we have a $sla return it, otherwise they never accessed and the date should be 0.
+        return $sla ? $sla : 0;
     }
 
     /**
@@ -770,6 +800,7 @@ die();
             get_string('firstname', 'block_wds_postgrades'),
             get_string('lastname', 'block_wds_postgrades'),
             get_string('universalid', 'block_wds_postgrades'),
+            get_string('section', 'block_wds_postgrades'),
             get_string('gradingscheme', 'block_wds_postgrades'),
             get_string('gradingbasis', 'block_wds_postgrades'),
             get_string('real', 'grades'),
@@ -800,11 +831,20 @@ die();
             // Get the grade code.
             $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
 
+            // Section identifier.
+            $sectionidentifier = $student->course_subject_abbreviation .
+                ' ' .
+                $student->course_number .
+                ' ' .
+                $student->section_number;
+
+
             // Build out the table.
             $tablerow = [
                 $student->firstname,
                 $student->lastname,
                 $student->universal_id,
+                $sectionidentifier,
                 $student->grading_scheme,
                 $student->grading_basis,
                 $finalgrade->real,
