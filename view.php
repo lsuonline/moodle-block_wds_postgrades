@@ -152,8 +152,8 @@ if ($action === 'postgrades' && confirm_sesskey()) {
         $grades[] = $gradeobj;
     }
 
-    // Now post the grades to Workday.
-    $result = \block_wds_postgrades\wdspg::post_grade($grades, $gradetype, $sectionlistingid);
+    // Use the new method to post grades based on the configured posting method.
+    $resultdata = \block_wds_postgrades\wdspg::post_grades_with_method($grades, $gradetype, $sectionlistingid);
 
     // Create results URL with appropriate parameters.
     $resultsurl = new moodle_url(
@@ -164,62 +164,17 @@ if ($action === 'postgrades' && confirm_sesskey()) {
     $resultsurl->param('sectiontitle', $sectiontitle);
     $resultsurl->param('typeword', $typeword);
 
-    // Prepare to store detailed results.
-    $resultdata = new stdClass();
-
-    // Handle response/result.
-    if ($result === 'error') {
-        $resultsurl->param('resulttype', 'error');
-    } else if (is_object($result) && isset($result->error)) {
-        $resultsurl->param('resulttype', 'error');
-        $resultsurl->param('errorcode', $result->error);
-
-        // Process detailed errors.
-        if (isset($result->xmlstring)) {
-            $errors = \block_wds_postgrades\wdspg::parseerrors($result->xmlstring);
-
-            // Check for section status issues.
-            $sectionstatus = \block_wds_postgrades\wdspg::pg_section_status($result->xmlstring);
-
-            if ($sectionstatus) {
-                $resultdata->section_status = get_string(
-                    'sectiongraded',
-                    'block_wds_postgrades',
-                    $sectionlistingid);
-            }
-
-            // Process error details.
-            if (!empty($errors)) {
-                $failures = array();
-                $successful = array();
-
-                foreach ($errors as $error) {
-                    $errindex = $error->index;
-
-                    if (is_numeric($errindex)) {
-
-                        // Build the new object for the failure.
-                        $stugrade = clone $grades[$errindex - 1];
-                        $stugrade->errormessage = $error->message;
-                        $failures[] = $stugrade;
-
-                        // Remove this grade from the successful grades.
-                        unset($grades[$errindex - 1]);
-                    }
-                }
-
-                // Store failures and successes.
-                $resultdata->errors = $failures;
-
-                // Reindex array.
-                $resultdata->successes = array_values($grades);
-            }
-        }
-    } else {
+    // Determine overall result type.
+    if (empty($resultdata->failures) && !empty($resultdata->successes)) {
         $resultsurl->param('resulttype', 'success');
-        $resultsurl->param('sectionlistingid', $sectionlistingid);
-        $resultdata->successes = $grades;
+    } else if (!empty($resultdata->failures) && !empty($resultdata->successes)) {
+        $resultsurl->param('resulttype', 'partial');
+    } else {
+        $resultsurl->param('resulttype', 'error');
     }
+
+    // Add section listing ID for reference.
+    $resultsurl->param('sectionlistingid', $sectionlistingid);
 
     // Store result data in session for the results page.
     $SESSION->wds_postgrades_results = $resultdata;
@@ -272,8 +227,7 @@ if ($isopen) {
 }
 
 // Back to course button (outside the form).
-$courseurl = new moodle_url('/blocks/wds_postgrades/view.php',
-    ['courseid' => $courseid, 'sectionid' => $sectionid, 'gradetype' => $gradetype]);
+$courseurl = new moodle_url('/course/view.php', ['id' => $courseid]);
 echo $OUTPUT->single_button($courseurl, get_string('backtocourse', 'block_wds_postgrades'), 'get');
 
 echo html_writer::end_div();

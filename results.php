@@ -41,7 +41,6 @@ $stringvar = [
     'typeword' => $typeword
 ];
 
-
 // Session data for passing complex information.
 $resultdata = null;
 if (isset($SESSION->wds_postgrades_results)) {
@@ -80,6 +79,8 @@ if ($resulttype === 'error') {
     if (!empty($errorcode)) {
         echo $OUTPUT->notification(get_string('postgradeservererror', 'block_wds_postgrades', $errorcode), 'error');
     }
+} else if ($resulttype === 'partial') {
+    echo $OUTPUT->notification(get_string('postgradepartial', 'block_wds_postgrades'), 'warning');
 } else if ($resulttype === 'success') {
     echo $OUTPUT->notification(get_string('postgradessuccess', 'block_wds_postgrades'), 'success');
 }
@@ -91,24 +92,26 @@ if ($resultdata) {
     echo html_writer::tag('p', get_string('sectionlisting', 'block_wds_postgrades', $stringvar));
 
     // If there are errors to display.
-    if (isset($resultdata->errors) && !empty($resultdata->errors)) {
+    if (isset($resultdata->failures) && !empty($resultdata->failures)) {
         echo html_writer::tag('h4', get_string('errordetails', 'block_wds_postgrades'));
 
         // Create error table.
         $table = new html_table();
         $table->attributes['class'] = 'wdspgrades generaltable';
         $table->head = [
+            get_string('fullname', 'block_wds_postgrades'),
             get_string('universalid', 'block_wds_postgrades'),
+            get_string('grade', 'block_wds_postgrades'),
             get_string('errormessage', 'block_wds_postgrades')
         ];
 
-        foreach ($resultdata->errors as $error) {
-            if (isset($error->universal_id)) {
-                $row = [];
-                $row[] = $error->universal_id;
-                $row[] = $error->errormessage ?? get_string('unknownerror', 'block_wds_postgrades');
-                $table->data[] = $row;
-            }
+        foreach ($resultdata->failures as $failure) {
+            $row = [];
+            $row[] = $failure->student_fullname;
+            $row[] = $failure->universal_id;
+            $row[] = $failure->grade_display;
+            $row[] = $failure->errormessage ?? get_string('unknownerror', 'block_wds_postgrades');
+            $table->data[] = $row;
         }
 
         if (!empty($table->data)) {
@@ -131,7 +134,6 @@ if ($resultdata) {
         ];
 
         foreach ($resultdata->successes as $success) {
-
             $row = [];
             $row[] = $success->student_fullname;
             $row[] = $success->universal_id;
@@ -146,8 +148,9 @@ if ($resultdata) {
     }
 
     // If section status message exists.
-    if (isset($resultdata->section_status) && !empty($resultdata->section_status)) {
-        echo html_writer::tag('p', $resultdata->section_status, ['class' => 'alert alert-info']);
+    if (isset($resultdata->section_status) && $resultdata->section_status) {
+        echo html_writer::tag('p', get_string('sectiongraded', 'block_wds_postgrades', $stringvar),
+            ['class' => 'alert alert-info']);
     }
 }
 

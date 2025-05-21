@@ -31,11 +31,16 @@ if ($ADMIN->fulltree) {
         redirect(new moodle_url('/'));
     }
 
-    // Add a link to the period configuration page.
-    $settings->add(new admin_setting_heading(
-        'block_wds_postgrades/periodconfig',
-        get_string('settings', 'block_wds_postgrades'),
-        ''
+    // Add setting for posting method.
+    $settings->add(new admin_setting_configselect(
+        'block_wds_postgrades/postingmethod',
+        get_string('postingmethod', 'block_wds_postgrades'),
+        get_string('postingmethoddesc', 'block_wds_postgrades'),
+        'batch',
+        [
+            'batch' => get_string('postingmethodbatch', 'block_wds_postgrades'),
+            'individual' => get_string('postingmethodindividual', 'block_wds_postgrades')
+        ]
     ));
 
     // Register the external page for period configuration.

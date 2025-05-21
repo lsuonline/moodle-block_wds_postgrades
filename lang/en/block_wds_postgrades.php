@@ -50,8 +50,17 @@ $string['backtocourse'] = 'Back to course';
 $string['wds_postgrades:post'] = 'Post grades to Workday Student';
 $string['postgrades'] = 'Post Grades to Workday';
 $string['postgradessuccess'] = 'Grades successfully posted to Workday';
-$string['postgradefailed'] = 'Failed to post at least one student\'s grades to Workday';
+$string['postgradefailed'] = 'No grades were posted to Workday due to the following errors.';
 $string['postgradeservererror'] = 'Server error occurred while posting grades: {$a}';
+$string['postgradepartial'] = 'Some grades were successfully posted, but others failed';
+
+// New strings for posting method
+$string['postingmethod'] = 'Grade Posting Method';
+$string['postingmethoddesc'] = 'Choose whether to post all student grades at once (batch) or one student at a time (individual)';
+$string['postingmethodbatch'] = 'Post all student grades together';
+$string['postingmethodindividual'] = 'Post each student grade individually';
+$string['connectionerror'] = 'Connection error during grade posting';
+$string['servererror'] = 'Server error: {$a}';
 
 // Results page stuffs.
 $string['postgraderesults'] = 'Grade Posting Results';
@@ -62,7 +71,7 @@ $string['status'] = 'Status';
 $string['gradeposted'] = 'Grade posted successfully';
 $string['unknownerror'] = 'Unknown error occurred';
 $string['sectionlisting'] = 'Section Listing: {$a->sectiontitle}';
-$string['sectiongraded'] = 'All students already have grades for the section {$a->sectiontitle}.';
+$string['sectiongraded'] = 'Grades for {$a->sectiontitle} have been sent to Workday Student.';
 
 // Multiple section postings.
 $string['postallgrades'] = 'Post all course grades';

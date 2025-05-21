@@ -37,6 +37,133 @@ require_once($CFG->dirroot . '/grade/report/lib.php');
  */
 class wdspg {
 
+    /**
+     * Post grades to Workday using the configured posting method.
+     *
+     * @param array $grades Array of grade objects to be posted.
+     * @param string $gradetype Type of grades being posted ('final' or 'interim').
+     * @param string $sectionlistingid The Workday Section Listing ID for the course section.
+     * @return object Results object containing successes and failures.
+     */
+    public static function post_grades_with_method($grades, $gradetype, $sectionlistingid) {
+
+        // Get the configured posting method.
+        $postingmethod = get_config('block_wds_postgrades', 'postingmethod');
+
+        // Initialize results object.
+        $results = new \stdClass();
+        $results->successes = array();
+        $results->failures = array();
+
+        if ($postingmethod == 'individual') {
+
+            // Post grades one at a time.
+            foreach ($grades as $grade) {
+
+                // Create an array with just this student.
+                $singlegrade = array($grade);
+
+                // Post the individual grade.
+                $result = self::post_grade($singlegrade, $gradetype, $sectionlistingid);
+
+                if ($result === 'error') {
+
+                    // Handle connection error.
+                    $grade->errormessage = get_string('connectionerror', 'block_wds_postgrades');
+                    $results->failures[] = $grade;
+                } else if (is_object($result) && isset($result->error)) {
+
+                    // Handle response error.
+                    $grade->errormessage = get_string('servererror', 'block_wds_postgrades', $result->error);
+
+                    // Check for more specific error if XML is available.
+                    if (isset($result->xmlstring)) {
+
+                        // Parse for specific errors
+                        $errors = self::parseerrors($result->xmlstring);
+                        if (!empty($errors)) {
+                            foreach ($errors as $error) {
+                                $grade->errormessage = $error->message;
+                            }
+                        }
+                    }
+
+                    $results->failures[] = $grade;
+                } else {
+
+                    // Success.
+                    $results->successes[] = $grade;
+                }
+            }
+        } else {
+
+            // Default to batch posting (all students at once).
+            $result = self::post_grade($grades, $gradetype, $sectionlistingid);
+
+            if ($result === 'error') {
+
+                // Handle general error - all grades failed.
+                foreach ($grades as $grade) {
+                    $grade->errormessage = get_string('connectionerror', 'block_wds_postgrades');
+                    $results->failures[] = $grade;
+                }
+            } else if (is_object($result) && isset($result->error)) {
+
+                // Process detailed errors.
+                if (isset($result->xmlstring)) {
+                    $errors = self::parseerrors($result->xmlstring);
+                    $errorindexes = array();
+
+                    // Process error details.
+                    if (!empty($errors)) {
+                        foreach ($errors as $error) {
+                            $errindex = $error->index;
+
+                            if (is_numeric($errindex) && isset($grades[$errindex - 1])) {
+
+                                // Build the failure object.
+                                $stugrade = clone $grades[$errindex - 1];
+                                $stugrade->errormessage = $error->message;
+                                $results->failures[] = $stugrade;
+
+                                // Track which indexes had errors.
+                                $errorindexes[] = $errindex - 1;
+                            }
+                        }
+                    }
+
+                    // Any grades not in the error list were successful.
+                    foreach ($grades as $index => $grade) {
+                        if (!in_array($index, $errorindexes)) {
+                            $results->successes[] = $grade;
+                        }
+                    }
+                } else {
+
+                    // No detailed error info - consider all as failed.
+                    foreach ($grades as $grade) {
+                        $grade->errormessage = get_string('servererror', 'block_wds_postgrades', $result->error);
+                        $results->failures[] = $grade;
+                    }
+                }
+            } else {
+
+                // All successful.
+                $results->successes = $grades;
+            }
+        }
+
+        // Check for section-wide status issues.
+        if (is_object($result) && isset($result->xmlstring)) {
+            $sectionstatus = self::pg_section_status($result->xmlstring);
+            if ($sectionstatus) {
+                $results->section_status = true;
+            }
+        }
+
+        return $results;
+    }
+
     public static function pg_section_status($errors) {
 
         // TODO: WTF am I going to do with this? There are actually 3 of these potential messages and I probably have to deal with all of them.
