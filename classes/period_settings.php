@@ -72,8 +72,35 @@ class period_settings {
         // Get this.
         $academicperiodid = $section->academic_period_id;
 
-        // Get the configured start and end times for this period from our custom table.
-        $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
+        if ($section->gradetype == 'interim' || $section->gradetype == 'Interim') {
+
+            // Set the table.
+            $itable = 'block_wds_postgrades_periods';
+
+            // Get the configured interim start and end times from the table above.
+            $record = $DB->get_record($itable, ['academic_period_id' => $academicperiodid]);
+
+        } else {
+
+            // Get the start and end times for finals from WD tables.
+            $sparms = [
+                'academic_period_id' => $academicperiodid,
+                'date_type' => 'Final Grading Start',
+            ];
+
+            $starter = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+
+            $eparms = [
+                'academic_period_id' => $academicperiodid,
+                'date_type' => 'Final Grading End',
+            ];
+            $ender = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+
+            // Build this for use later.
+            $record = new \stdClass();
+            $record->start_time = (int)$starter->date;
+            $record->end_time = (int)$ender->date;
+        }
 
         // Get current time.
         $currenttime = time();
