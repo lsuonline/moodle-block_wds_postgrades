@@ -152,6 +152,16 @@ if ($resultdata) {
         echo html_writer::tag('p', get_string('sectiongraded', 'block_wds_postgrades', $stringvar),
             ['class' => 'alert alert-info']);
     }
+
+    // Check if all final grades have been posted.
+    if ($gradetype === 'final') {
+        $enrolledstudents = \block_wds_postgrades\wdspg::get_enrolled_students($courseid, $sectionid);
+        $allposted = \block_wds_postgrades\wdspg::all_final_grades_posted($sectionid, $enrolledstudents, $courseid);
+
+        if ($allposted) {
+            echo $OUTPUT->notification(get_string('allgradesposted', 'block_wds_postgrades'), 'success');
+        }
+    }
 }
 
 // Add navigation buttons.

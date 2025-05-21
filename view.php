@@ -58,7 +58,7 @@ $sectiontitle = $section->course_subject_abbreviation .
     $section->section_number;
 
 // Build out the typeword for the lang string.
-If ($gradetype == 'interim') {
+if ($gradetype == 'interim') {
     $typeword = 'Interim';
 } else {
     $typeword = 'Final';
@@ -96,7 +96,6 @@ $enrolledstudents = \block_wds_postgrades\wdspg::get_enrolled_students($courseid
 
 // Process form submission if the post grades action is triggered.
 if ($action === 'postgrades' && confirm_sesskey()) {
-
     // Check if user has capability to post grades.
     require_capability('block/wds_postgrades:post', $PAGE->context);
 
@@ -106,8 +105,35 @@ if ($action === 'postgrades' && confirm_sesskey()) {
     // Properly set the section listing id.
     $sectionlistingid = $section->section_listing_id;
 
+    // Handle selective posting (for final grades)
+    $studentstopost = optional_param_array('students_to_post', [], PARAM_TEXT);
+
+    // Get the raw student_data array and process it manually since it's a nested array
+    $rawstudentdata = [];
+    if (isset($_POST['student_data']) && is_array($_POST['student_data'])) {
+        foreach ($_POST['student_data'] as $universalid => $fields) {
+            if (is_array($fields)) {
+                $cleanfields = [];
+                foreach ($fields as $fieldname => $fieldvalue) {
+                    // Clean each field individually
+                    $cleanfields[clean_param($fieldname, PARAM_TEXT)] = clean_param($fieldvalue, PARAM_TEXT);
+                }
+                $rawstudentdata[clean_param($universalid, PARAM_TEXT)] = $cleanfields;
+            }
+        }
+    }
+    $studentdata = $rawstudentdata;
+
     // Process each student's grade.
     foreach ($enrolledstudents as $student) {
+        // For final grades, only process students that haven't been posted yet
+        if ($gradetype === 'final' && empty($studentstopost)) {
+            // No students to post, form was likely submitted without any available students
+            continue;
+        } else if ($gradetype === 'final' && !in_array($student->universal_id, $studentstopost)) {
+            // Skip students not in the post list (already posted or invalid grades)
+            continue;
+        }
 
         // Get the student's formatted grade.
         $finalgrade = \block_wds_postgrades\wdspg::get_formatted_grade(
@@ -126,17 +152,16 @@ if ($action === 'postgrades' && confirm_sesskey()) {
         $gradeobj->student_fullname = $student->firstname . ' ' . $student->lastname;
         $gradeobj->grade_id = $gradecode->grade_id;
         $gradeobj->grade_display = $gradecode->grade_display;
+        $gradeobj->userid = $student->userid;
 
         // If we're required to post a note.
         if ($gradecode->grade_note_required == "1") {
-
             // Set this so we can use isset later.
             $gradeobj->grade_note_required = $gradecode->grade_note_required;
         }
 
         // If we're required to post a last attendance date.
         if ($gradecode->requires_last_attendance == "1" && $gradetype == "final") {
-
             // Set this so we can use isset later.
             $gradeobj->requires_last_attendance = $gradecode->requires_last_attendance;
 
@@ -153,7 +178,14 @@ if ($action === 'postgrades' && confirm_sesskey()) {
     }
 
     // Use the new method to post grades based on the configured posting method.
-    $resultdata = \block_wds_postgrades\wdspg::post_grades_with_method($grades, $gradetype, $sectionlistingid);
+    // For final grades, use extended method to track succesful postings
+    if ($gradetype === 'final') {
+        $resultdata = \block_wds_postgrades\wdspg::post_grades_with_method_extended(
+            $grades, $gradetype, $sectionlistingid, $courseid, $sectionid);
+    } else {
+        $resultdata = \block_wds_postgrades\wdspg::post_grades_with_method(
+            $grades, $gradetype, $sectionlistingid);
+    }
 
     // Create results URL with appropriate parameters.
     $resultsurl = new moodle_url(
@@ -191,37 +223,78 @@ echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $stringvar
 $isopen = \block_wds_postgrades\period_settings::is_grading_open($section);
 $openstatus = \block_wds_postgrades\period_settings::get_grading_status($section);
 
-// Display status message about interim grades availability.
+// Display status message about grades availability.
 echo $OUTPUT->notification($openstatus, $isopen ? 'info' : 'warning');
 
-// Only show the form if interim grades are available.
+// Only show the form if grades are available for posting.
 if ($isopen) {
-
-    // Start form.
-    $formaction = new moodle_url('/blocks/wds_postgrades/view.php');
-    echo html_writer::start_tag('form', ['method' => 'post', 'action' => $formaction]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sectionid', 'value' => $sectionid]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'gradetype', 'value' => $gradetype]);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'postgrades']);
-    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
-
-    // Generate and output the table.
-    $tablehtml = \block_wds_postgrades\wdspg::generate_grades_table($enrolledstudents, $courseid);
-    echo $tablehtml;
-
-    // Add a container for buttons.
-    echo html_writer::start_div('buttons');
-
-    // Post Grades button (only visible if user has the capability to post grades).
-    if (has_capability('block/wds_postgrades:post', $PAGE->context) && !empty($enrolledstudents)) {
-        echo html_writer::tag('button', get_string('postgrades', 'block_wds_postgrades'),
-            ['type' => 'submit', 'class' => 'btn btn-primary']);
-        echo ' ';
+    // Check if all final grades have already been posted
+    $allposted = false;
+    if ($gradetype === 'final') {
+        $allposted = \block_wds_postgrades\wdspg::all_final_grades_posted($sectionid, $enrolledstudents, $courseid);
     }
 
-    // End the form.
-    echo html_writer::end_tag('form');
+    if ($gradetype === 'final' && $allposted) {
+        // All final grades have been posted, show a success message
+        echo $OUTPUT->notification(get_string('allgradesposted', 'block_wds_postgrades'), 'success');
+    } else {
+        // Start form.
+        $formaction = new moodle_url('/blocks/wds_postgrades/view.php');
+        echo html_writer::start_tag('form', ['method' => 'post', 'action' => $formaction]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sectionid', 'value' => $sectionid]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'gradetype', 'value' => $gradetype]);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'postgrades']);
+        echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
+
+        // Generate and output the table with status
+        if ($gradetype === 'final') {
+            $result = \block_wds_postgrades\wdspg::generate_grades_table_with_status(
+                $enrolledstudents, $courseid, $sectionid, $gradetype);
+
+            // Output the table HTML
+            echo $result['html'];
+
+            // If we have valid grades to post, show a message about remaining grades
+            if ($result['stats']['available'] > 0) {
+                echo $OUTPUT->notification(
+                    get_string('remaininggrades', 'block_wds_postgrades', $result['stats']['available']),
+                    'info'
+                );
+            } else if ($result['stats']['posted'] > 0 && $result['stats']['available'] == 0) {
+                // All grades posted
+                echo $OUTPUT->notification(
+                    get_string('allgradesposted', 'block_wds_postgrades'),
+                    'success'
+                );
+            } else if ($result['stats']['posted'] == 0 && $result['stats']['available'] == 0) {
+                // No grades to post
+                echo $OUTPUT->notification(
+                    get_string('nopostablegrades', 'block_wds_postgrades'),
+                    'warning'
+                );
+            }
+        } else {
+            // For interim grades, use the original method
+            $tablehtml = \block_wds_postgrades\wdspg::generate_grades_table($enrolledstudents, $courseid);
+            echo $tablehtml;
+        }
+
+        // Add a container for buttons.
+        echo html_writer::start_div('buttons');
+
+        // Post Grades button (only visible if user has the capability to post grades).
+        if (has_capability('block/wds_postgrades:post', $PAGE->context) &&
+            !empty($enrolledstudents) &&
+            ($gradetype !== 'final' || ($gradetype === 'final' && $result['stats']['available'] > 0))) {
+            echo html_writer::tag('button', get_string('postgrades', 'block_wds_postgrades'),
+                ['type' => 'submit', 'class' => 'btn btn-primary']);
+            echo ' ';
+        }
+
+        // End the form.
+        echo html_writer::end_tag('form');
+    }
 } else {
     echo $OUTPUT->notification(get_string('gradesnotavailable', 'block_wds_postgrades', $typeword), 'error');
 }

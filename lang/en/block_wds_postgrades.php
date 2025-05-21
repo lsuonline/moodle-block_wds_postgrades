@@ -91,10 +91,10 @@ $string['periodenddatedesc'] = 'The date and time when posting interim grades is
 $string['noperiods'] = 'No Active Academic Periods';
 $string['nogradepostingperiod'] = 'No active grade posting periods are available at this time.';
 $string['noperiodsdesc'] = 'No active academic periods were found. Settings will appear when active periods are available.';
-$string['interimgradesnotconfigured'] = 'Interim grades posting dates have not been configured for this period.';
+$string['gradesnotconfigured'] = '{$a} grades posting dates have not been configured for this period.';
 $string['gradesnotavailable'] = '{$a} grades posting is currently not available for this section.';
-$string['interimgradesfuture'] = 'Interim grades posting will be available in {$a->time}.';
-$string['interimgradespast'] = 'Interim grades posting is no longer available for this period.';
+$string['gradesfuture'] = '{$a->typeword} grades posting will be available in {$a->time}.';
+$string['gradespast'] = '{$a} grades posting is no longer available for this period.';
 $string['gradesopen'] = '{$a->typeword} grades posting is available. Time remaining: {$a->time}.';
 
 // Period configuration page strings
@@ -103,3 +103,11 @@ $string['endbeforestart'] = 'End date must be after start date';
 $string['changessaved'] = 'Changes saved successfully';
 $string['periodconfiglinktext'] = 'Configure Grading Periods';
 $string['managegradeperiods'] = 'Manage Grade Posting Periods';
+
+// Final grade tracking strings
+$string['alreadyposted'] = 'Already posted';
+$string['dateposted'] = 'Posted on {$a}';
+$string['postedby'] = 'Posted by {$a}';
+$string['allgradesposted'] = 'All final grades for this section have been posted to Workday Student.';
+$string['nopostablegrades'] = 'There are no grades to post for this section at this time.';
+$string['remaininggrades'] = 'Posting {$a} remaining final grades.';

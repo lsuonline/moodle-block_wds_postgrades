@@ -99,22 +99,49 @@ class period_settings {
         // Get this.
         $academicperiodid = $section->academic_period_id;
 
-        // Get the configured start and end times from our custom table.
-        $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
+        if ($section->gradetype == 'interim' || $section->gradetype == 'Interim') {
+
+            // Get the configured interim start and end times from our custom table.
+            $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
+
+        } else {
+
+            // Get the start and end times for finals form WD tables.
+            $sparms = [
+                'academic_period_id' => $academicperiodid,
+                'date_type' => 'Final Grading Start',
+            ];
+
+            $starter = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+
+            $eparms = [
+                'academic_period_id' => $academicperiodid,
+                'date_type' => 'Final Grading End',
+            ];
+            $ender = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+
+            // Build this for use later.
+            $record = new \stdClass();
+            $record->start_time = (int)$starter->date;
+            $record->end_time = (int)$ender->date;
+        }
 
         // Get current time.
         $currenttime = time();
 
+        // If we have no times configured.
         if (!$record || !$record->start_time || !$record->end_time) {
-            return get_string('interimgradesnotconfigured', 'block_wds_postgrades');
+            $timer = ['typeword' => $section->gradetype];
+            return get_string('gradesnotconfigured', 'block_wds_postgrades', $timer);
         } else if ($currenttime < $record->start_time) {
             $timeuntilstart = format_time($record->start_time - $currenttime);
-            return get_string('interimgradesfuture', 'block_wds_postgrades', $timeuntilstart);
+            $timer = ['typeword' => $section->gradetype, 'time' => $timeuntilstart];
+            return get_string('gradesfuture', 'block_wds_postgrades', $timer);
         } else if ($currenttime > $record->end_time) {
-            return get_string('interimgradespast', 'block_wds_postgrades');
+            return get_string('gradespast', 'block_wds_postgrades', $section->gradetype);
         } else {
             $timeuntilend = format_time($record->end_time - $currenttime);
-            $timer = ['typeword' => $section->gradetype, 'time' => $timeuntilend]; 
+            $timer = ['typeword' => $section->gradetype, 'time' => $timeuntilend];
             return get_string('gradesopen', 'block_wds_postgrades', $timer);
         }
     }
