@@ -94,7 +94,7 @@ class period_settings {
                 'academic_period_id' => $academicperiodid,
                 'date_type' => 'Final Grading End',
             ];
-            $ender = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+            $ender = $DB->get_record('enrol_wds_pgc_dates', $eparms);
 
             // Build this for use later.
             $record = new \stdClass();
@@ -145,7 +145,7 @@ class period_settings {
                 'academic_period_id' => $academicperiodid,
                 'date_type' => 'Final Grading End',
             ];
-            $ender = $DB->get_record('enrol_wds_pgc_dates', $sparms);
+            $ender = $DB->get_record('enrol_wds_pgc_dates', $eparms);
 
             // Build this for use later.
             $record = new \stdClass();
