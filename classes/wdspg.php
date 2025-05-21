@@ -131,10 +131,10 @@ class wdspg {
      *
      * This function constructs the XML data required for posting either final or interim grades
      * to Workday's API. It processes each student grade and generates the appropriate XML structure
-     * based on the grade type (finals or interim).
+     * based on the grade type (final or interim).
      *
      * @param @array $grades An array of grade objects containing student and grade information.
-     * @param @string $gradetype The type of grades being posted ('finals' or any other value for interim).
+     * @param @string $gradetype The type of grades being posted ('final' or any other value for interim).
      * @return @string The constructed XML string representing student grades data.
      */
     public static function buildgradestopost($grades, $gradetype) {
@@ -157,8 +157,8 @@ die();
             // Grade for the registration in question.
             $gradeid = $grade->grade_id;
 
-            // Check to see if we're in finals or this is an interim grade.
-            if ($gradetype == "finals") {
+            // Check to see if we're in final or this is an interim grade.
+            if ($gradetype == "final") {
 
                 // Posting final grades.
                 $sdtype = "Student_Grades_Data";
@@ -244,7 +244,7 @@ die();
      *
      * @param @object $s Object containing API credentials and configuration.
      * @param @array $grades Array of grade objects to be posted.
-     * @param @string $gradetype Type of grades being posted ('finals' or any other value for interim).
+     * @param @string $gradetype Type of grades being posted ('final' or any other value for interim).
      * @param @string $sectionlistingid The Workday Section Listing ID for the course section.
      * @return @string | @object The cleaned XML response string on success, error or object on failure.
      */
@@ -342,14 +342,14 @@ die();
      *
      * @param @object $s Object containing API credentials and configuration.
      * @param @array $grades Array of grade objects to be posted.
-     * @param @string $gradetype Type of grades being posted ('finals' or any other value for interim).
+     * @param @string $gradetype Type of grades being posted ('final' or any other value for interim).
      * @param @string $sectionlistingid The Workday Section Listing ID for the course section.
      * @return @string The complete SOAP XML request as a cleaned string.
      */
     public static function buildsoapxml($s, $grades, $gradetype, $sectionlistingid) {
 
         // Build out if it's interim or final grades.
-        if ($gradetype == "finals") {
+        if ($gradetype == "final") {
             $wdendpoint = "Submit_Grades_for_Registrations_Request";
             $wddata = "Submit_Grades_for_Registrations_Data";
             $bpparms = "<wd:Business_Process_Parameters>" .
@@ -621,15 +621,21 @@ die();
         // Deal with graded ones 1st as they should always be 1:1.
         if ($student->grading_basis == 'Graded') {
 
+            // If they do not have a final grade, fail them.
+            $fg = isset($finalgrade->letter) && $finalgrade->letter != 'No grade' ? $finalgrade->letter : 'F';
+
             // Build out the parms for the graded codes.
             $parms = [
                 'grading_scheme_id' => $student->grading_scheme,
                 'grading_basis' => $student->grading_basis,
-                'grade_display' => $finalgrade->letter
+                'grade_display' => $fg
             ];
 
         // Pass / Fail grades.
         } else if ($student->grading_basis == 'Pass/Fail') {
+
+            // If they do not have a final grade, fail them.
+            $fg = isset($finalgrade->letter) && $finalgrade->letter != 'No grade' ? $finalgrade->letter : 'F';
 
             // Build out an array for passing grades.
             $keywordarray = [
@@ -651,7 +657,7 @@ die();
             ];
 
             // Get the appropriate keyword to use to look up the code.
-            $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+            $letter = $keywordarray[$fg] ?? 'Unknown';
 
             // Build out the parms for the PF codes.
             $parms = [
@@ -675,6 +681,9 @@ die();
 
             if ($student->grading_scheme == 'LSUAM Standard Grading Scheme') {
 
+                // If they do not have a final grade, fail them.
+                $fg = isset($finalgrade->letter) && $finalgrade->letter != 'No grade' ? $finalgrade->letter : 'F';
+
                 // Build out an array for passing grades.
                 $keywordarray = [
                     'A+' => 'Pass',
@@ -695,7 +704,7 @@ die();
                 ];
 
                 // Get the appropriate keyword to use to look up the code.
-                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+                $letter = $keywordarray[$fg] ?? 'Unknown';
 
                 // Build out the parms for the codes.
                 $parms = [
@@ -706,6 +715,9 @@ die();
 
             // Honors.
             } else if ($student->grading_scheme == 'LSUAM Honors Grading Scheme') {
+
+                // If they do not have a final grade, fail them.
+                $fg = isset($finalgrade->letter) && $finalgrade->letter != 'No grade' ? $finalgrade->letter : 'F';
 
                 // Build out an array for passing grades.
                 $keywordarray = [
@@ -727,7 +739,7 @@ die();
                 ];
 
                 // Get the appropriate keyword to use to look up the code.
-                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+                $letter = $keywordarray[$fg] ?? 'Unknown';
 
                 // Build out the parms for the codes.
                 $parms = [
@@ -738,6 +750,9 @@ die();
 
             // I have no idea what to do here.
             } else {
+
+                // If they do not have a final grade, fail them.
+                $fg = isset($finalgrade->letter) && $finalgrade->letter != 'No grade' ? $finalgrade->letter : 'F';
 
                 // Build out an array for passing grades.
                 $keywordarray = [
@@ -759,7 +774,7 @@ die();
                 ];
 
                 // Get the appropriate keyword to use to look up the code.
-                $letter = $keywordarray[$finalgrade->letter] ?? 'Unknown';
+                $letter = $keywordarray[$fg] ?? 'Unknown';
 
                 // Build out the parms for the codes.
                 $parms = [
@@ -773,12 +788,26 @@ die();
         // Get the data.
         $gradecode = $DB->get_records($table, $parms);
 
-        if (count($gradecode) > 1) {
+        // Student has no final grade.
+        if (!$gradecode) {
+            $gradecode = new \stdClass();
+            $gradecode->grading_scheme_id = $student->grading_scheme;
+            $gradecode->grading_basis = $student->grading_basis;
+            $gradecode->grade_id = 'No Grade';
+            $gradecode->grade_display = 'No Grade';
 
-            mtrace("More than one record returned for $student->firstname $student->lastname in $student->course_section_definition_id");
+        // Student has a weird situation where more than one grade code is returned.
+        } else if (count($gradecode) > 1) {
+
+            mtrace("More than one possible grade for " .
+                "$student->firstname $student->lastname in " .
+                "$student->course_section_definition_id.");
+
             $gradecode = false;
+
+        // We returned one grade code.
         } else {
-            $gradecode = reset($gradecode);
+            $gradecode = is_array($gradecode) ? reset($gradecode) : $gradecode;
         }
 
         return $gradecode;
@@ -833,9 +862,14 @@ die();
             // Get the grade code.
             $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
 
-            // We have more than one gradecode for this person/grade, leave this place.
+            // We have more or less than one gradecodefor this person/grade, leave this place.
             if (!$gradecode) {
-                mtrace("- Not processing $student->firstname $student->lastname.");
+                mtrace("Not processing $student->firstname $student->lastname due to multiple workday grade codes.");
+                unset($student);
+                continue;
+            } else if ($gradecode->grade_display == 'No Grade') {
+                mtrace("Not processing $student->firstname $student->lastname due to them not having a final grade.");
+                unset($student);
                 continue;
             }
 

@@ -28,6 +28,8 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->dirroot . '/blocks/wds_postgrades/classes/period_settings.php');
+
 /**
  * Block definition class for WDS Post Grades block.
  */
@@ -55,12 +57,24 @@ class block_wds_postgrades extends block_base {
      * @return stdClass The content object.
      */
     public function get_content() {
-        global $COURSE, $OUTPUT, $DB;
+        global $CFG, $COURSE, $OUTPUT;
+
+        require_once($CFG->dirroot . '/blocks/wds_postgrades/classes/period_settings.php');
 
         if ($this->content !== null) {
             return $this->content;
         }
 
+        $isections = \block_wds_postgrades\period_settings::get_interim_grading_sections($COURSE->id);
+
+        $fsections = \block_wds_postgrades\period_settings::get_final_grading_sections($COURSE->id);
+
+        // No sections available for posting.
+        if (empty($isections) && empty($fsections)) {
+            return null;
+        }
+
+        // Build out the block.
         $this->content = new stdClass();
         $this->content->text = '';
         $this->content->footer = '';
@@ -76,44 +90,70 @@ class block_wds_postgrades extends block_base {
         $viewurl = new moodle_url('/blocks/wds_postgrades/view.php', ['courseid' => $COURSE->id]);
         $linktext = get_string('postallgrades', 'block_wds_postgrades');
 
-        // Get all sections for this course
-        $sql = "SELECT DISTINCT
-                sec.id,
-                sec.section_listing_id,
-                sec.section_number,
-                sec.course_subject_abbreviation,
-                cou.course_number
-            FROM {enrol_wds_sections} sec
-                INNER JOIN {enrol_wds_courses} cou
-                    ON cou.course_listing_id = sec.course_listing_id
-            WHERE sec.moodle_status = :courseid
-            ORDER BY sec.section_number";
+        if (!empty($isections)) {
 
-        $sections = $DB->get_records_sql($sql, ['courseid' => $COURSE->id]);
+            $this->content->text .= html_writer::start_div('individual-sections interim-sections');
 
-        $this->content->text .= html_writer::start_div('individual-sections');
-        $this->content->text .= html_writer::tag(
-            'h5',
-            get_string('individualsections', 'block_wds_postgrades')
-        );
-
-        foreach ($sections as $section) {
-            $sectionurl = new moodle_url('/blocks/wds_postgrades/view.php',
-                ['courseid' => $COURSE->id, 'sectionid' => $section->id]
+            $this->content->text .= html_writer::tag(
+                'h5',
+                get_string('gradetype', 'block_wds_postgrades', 'Interim')
             );
-            $sectiontitle = $section->course_subject_abbreviation . ' ' .
-                $section->course_number . ' ' .
-                $section->section_number;
-            $sectionbutton = $OUTPUT->single_button(
-                $sectionurl,
-                $sectiontitle,
-                'get',
-                ['class' => 'wdspgradesbutton-section']
-            );
-            $this->content->text .= $sectionbutton;
+
+            // Loop through nay interims.
+            foreach ($isections as $isection) {
+                $iparms = [
+                    'courseid' => $COURSE->id,
+                    'sectionid' => $isection->id,
+                    'gradetype' => 'interim'
+                ];
+                $isectionurl = new moodle_url('/blocks/wds_postgrades/view.php', $iparms);
+                $isectiontitle = $isection->course_subject_abbreviation . ' ' .
+                    $isection->course_number . ' ' .
+                    $isection->section_number;
+                $isectionbutton = $OUTPUT->single_button(
+                    $isectionurl,
+                    $isectiontitle,
+                    'get',
+                    ['class' => 'wdspgradesbutton-section']
+                );
+                $this->content->text .= $isectionbutton;
+            }
+
+            $this->content->text .= html_writer::end_div();
         }
 
-        $this->content->text .= html_writer::end_div();
+        if (!empty($fsections)) {
+
+            $this->content->text .= html_writer::start_div('individual-sections final-sections');
+
+            $this->content->text .= html_writer::tag(
+                'h5',
+                get_string('gradetype', 'block_wds_postgrades', 'Final')
+            );
+
+            // Loop through any finals.
+            foreach ($fsections as $fsection) {
+                $fparms = [
+                    'courseid' => $COURSE->id,
+                    'sectionid' => $fsection->id,
+                    'gradetype' => 'final'
+                ];
+                $fsectionurl = new moodle_url('/blocks/wds_postgrades/view.php', $fparms);
+
+                $fsectiontitle = $fsection->course_subject_abbreviation . ' ' .
+                    $fsection->course_number . ' ' .
+                    $fsection->section_number;
+                $fsectionbutton = $OUTPUT->single_button(
+                    $fsectionurl,
+                    $fsectiontitle,
+                    'get',
+                    ['class' => 'wdspgradesbutton-section']
+                );
+                $this->content->text .= $fsectionbutton;
+            }
+
+            $this->content->text .= html_writer::end_div();
+        }
 
         return $this->content;
     }

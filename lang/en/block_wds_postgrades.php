@@ -34,6 +34,7 @@ $string['gradingscheme'] = 'Grading Scheme';
 $string['gradingbasis'] = 'Grading Basis';
 $string['grade'] = 'Workday Grade';
 $string['finalgrade'] = 'Workday {$a->typeword} Grade';
+$string['gradetype'] = '{$a} Grades';
 $string['gradecode'] = 'Workday Grade Code';
 $string['nograde'] = 'No grade';
 $string['letter'] = 'Letter grade';
@@ -49,8 +50,8 @@ $string['backtocourse'] = 'Back to course';
 $string['wds_postgrades:post'] = 'Post grades to Workday Student';
 $string['postgrades'] = 'Post Grades to Workday';
 $string['postgradessuccess'] = 'Grades successfully posted to Workday';
-$string['postgradefailed'] = 'Failed to post grades to Workday';
-$string['postgradeservererror'] = 'Server error occurred while posting grades: {$a->sectiontitle}';
+$string['postgradefailed'] = 'Failed to post at least one student\'s grades to Workday';
+$string['postgradeservererror'] = 'Server error occurred while posting grades: {$a}';
 
 // Results page stuffs.
 $string['postgraderesults'] = 'Grade Posting Results';
@@ -82,10 +83,10 @@ $string['noperiods'] = 'No Active Academic Periods';
 $string['nogradepostingperiod'] = 'No active grade posting periods are available at this time.';
 $string['noperiodsdesc'] = 'No active academic periods were found. Settings will appear when active periods are available.';
 $string['interimgradesnotconfigured'] = 'Interim grades posting dates have not been configured for this period.';
-$string['interimgradesnotavailable'] = 'Interim grades posting is currently not available for this section.';
-$string['interimgradesfuture'] = 'Interim grades posting will be available in {$a}.';
+$string['gradesnotavailable'] = '{$a} grades posting is currently not available for this section.';
+$string['interimgradesfuture'] = 'Interim grades posting will be available in {$a->time}.';
 $string['interimgradespast'] = 'Interim grades posting is no longer available for this period.';
-$string['interimgradesopen'] = 'Interim grades posting is available. Time remaining: {$a}.';
+$string['gradesopen'] = '{$a->typeword} grades posting is available. Time remaining: {$a->time}.';
 
 // Period configuration page strings
 $string['periodconfig'] = 'Grading Period Configuration';

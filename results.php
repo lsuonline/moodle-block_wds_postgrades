@@ -29,6 +29,7 @@ require_once($CFG->dirroot . '/blocks/wds_postgrades/classes/wdspg.php');
 // Get parameters.
 $courseid = required_param('courseid', PARAM_INT);
 $sectionid = required_param('sectionid', PARAM_INT);
+$gradetype = required_param('gradetype', PARAM_ALPHA);
 $resulttype = optional_param('resulttype', '', PARAM_ALPHA);
 $errorcode = optional_param('errorcode', '', PARAM_TEXT);
 $sectionlistingid = optional_param('sectionlistingid', '', PARAM_TEXT);
@@ -131,13 +132,6 @@ if ($resultdata) {
 
         foreach ($resultdata->successes as $success) {
 
-/*
-echo"<pre>";
-var_dump($success);
-echo"</pre>";
-die();
-*/
-
             $row = [];
             $row[] = $success->student_fullname;
             $row[] = $success->universal_id;
@@ -163,7 +157,7 @@ echo html_writer::start_div('buttons');
 // View grades again button.
 $viewurl = new moodle_url(
     '/blocks/wds_postgrades/view.php',
-    ['courseid' => $courseid, 'sectionid' => $sectionid]);
+    ['courseid' => $courseid, 'sectionid' => $sectionid, 'gradetype' => $gradetype]);
 echo $OUTPUT->single_button($viewurl, get_string('viewgrades', 'block_wds_postgrades', $stringvar), 'get');
 echo ' ';
 

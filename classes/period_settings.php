@@ -43,7 +43,7 @@ class period_settings {
         // Get current timestamp.
         $currenttime = time();
 
-        // Build the SQL query using Moodle's DB API.
+        // Build the SQL query.
         $sql = "SELECT id, academic_period_id
                 FROM {enrol_wds_periods}
                 WHERE enabled = :enabled
@@ -66,8 +66,11 @@ class period_settings {
      * @param string $academicperiodid The academic period ID to check.
      * @return bool True if interim grades are allowed at the current time.
      */
-    public static function is_interim_grading_open($academicperiodid) {
+    public static function is_grading_open($section) {
         global $DB;
+
+        // Get this.
+        $academicperiodid = $section->academic_period_id;
 
         // Get the configured start and end times for this period from our custom table.
         $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
@@ -90,8 +93,11 @@ class period_settings {
      * @param string $academicperiodid The academic period ID to check.
      * @return string Status message.
      */
-    public static function get_interim_grading_status($academicperiodid) {
+    public static function get_grading_status($section) {
         global $DB;
+
+        // Get this.
+        $academicperiodid = $section->academic_period_id;
 
         // Get the configured start and end times from our custom table.
         $record = $DB->get_record('block_wds_postgrades_periods', ['academic_period_id' => $academicperiodid]);
@@ -108,7 +114,76 @@ class period_settings {
             return get_string('interimgradespast', 'block_wds_postgrades');
         } else {
             $timeuntilend = format_time($record->end_time - $currenttime);
-            return get_string('interimgradesopen', 'block_wds_postgrades', $timeuntilend);
+            $timer = ['typeword' => $section->gradetype, 'time' => $timeuntilend]; 
+            return get_string('gradesopen', 'block_wds_postgrades', $timer);
         }
+    }
+
+    /**
+     * Get the interim grading sections.
+     *
+     * @param @string $courseid The course ID to check.
+     * @return @array of @objects the sections.
+     */
+    public static function get_interim_grading_sections($courseid) {
+        global $DB;
+
+        // Get all interim ready sections for this course.
+        $isql = "SELECT DISTINCT
+                sec.id,
+                sec.section_listing_id,
+                sec.section_number,
+                sec.course_subject_abbreviation,
+                cou.course_number,
+                'Interim' AS gradetype
+            FROM {enrol_wds_sections} sec
+                INNER JOIN {enrol_wds_courses} cou
+                    ON cou.course_listing_id = sec.course_listing_id
+                INNER JOIN {block_wds_postgrades_periods} pp
+                    ON pp.academic_period_id = sec.academic_period_id
+                    AND pp.start_time < UNIX_TIMESTAMP()
+                    AND pp.end_time > UNIX_TIMESTAMP()
+            WHERE sec.moodle_status = :courseid
+            ORDER BY sec.section_number ASC";
+
+        $isections = $DB->get_records_sql($isql, ['courseid' => $courseid]);
+
+        return $isections;
+    }
+
+    /**
+     * Get the final grading sections.
+     *
+     * @param @string $courseid The course ID to check.
+     * @return @array of @objects the sections.
+     */
+    public static function get_final_grading_sections($courseid) {
+        global $DB;
+
+        // Get all final ready sections for this course.
+        $fsql = "SELECT DISTINCT
+                sec.id,
+                sec.section_listing_id,
+                sec.section_number,
+                sec.course_subject_abbreviation,
+                cou.course_number,
+                'Final' AS gradetype
+            FROM {enrol_wds_sections} sec
+                INNER JOIN {enrol_wds_courses} cou
+                    ON cou.course_listing_id = sec.course_listing_id
+                INNER JOIN {enrol_wds_pgc_dates} pp1
+                    ON pp1.academic_period_id = sec.academic_period_id
+                    AND pp1.date_type = 'Final Grading Start'
+                    AND pp1.date < UNIX_TIMESTAMP()
+                INNER JOIN {enrol_wds_pgc_dates} pp2
+                    ON pp2.academic_period_id = sec.academic_period_id
+                    AND pp2.date_type = 'Final Grading End'
+                    AND pp2.date > UNIX_TIMESTAMP()
+            WHERE sec.moodle_status = :courseid
+            ORDER BY sec.section_number ASC";
+
+        $fsections = $DB->get_records_sql($fsql, ['courseid' => $courseid]);
+
+        return $fsections;
     }
 }

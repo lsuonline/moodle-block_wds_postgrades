@@ -29,6 +29,7 @@ require_once($CFG->dirroot . '/blocks/wds_postgrades/classes/wdspg.php');
 // Get parameters.
 $courseid = required_param('courseid', PARAM_INT);
 $sectionid = required_param('sectionid', PARAM_INT);
+$gradetype = required_param('gradetype', PARAM_ALPHA);
 $action = optional_param('action', '', PARAM_ALPHA);
 
 // Get course.
@@ -56,15 +57,15 @@ $sectiontitle = $section->course_subject_abbreviation .
     ' ' .
     $section->section_number;
 
-// Make sure we're setting this early enough.
-$gradetype = 'interim';
-
 // Build out the typeword for the lang string.
-If ($gradetype = 'interim') {
+If ($gradetype == 'interim') {
     $typeword = 'Interim';
 } else {
     $typeword = 'Final';
 }
+
+// We need this.
+$section->gradetype = $typeword;
 
 $stringvar = [
     'coursename' => $course->fullname,
@@ -74,7 +75,7 @@ $stringvar = [
 
 // Setup page.
 $PAGE->set_url(new moodle_url('/blocks/wds_postgrades/view.php',
-    ['courseid' => $courseid, 'sectionid' => $sectionid]));
+    ['courseid' => $courseid, 'sectionid' => $sectionid, 'gradetype' => $gradetype]));
 $PAGE->set_context(context_course::instance($courseid));
 $PAGE->set_course($course);
 $PAGE->set_pagelayout('standard');
@@ -134,7 +135,7 @@ if ($action === 'postgrades' && confirm_sesskey()) {
         }
 
         // If we're required to post a last attendance date.
-        if ($gradecode->requires_last_attendance == "1") {
+        if ($gradecode->requires_last_attendance == "1" && $gradetype == "final") {
 
             // Set this so we can use isset later.
             $gradeobj->requires_last_attendance = $gradecode->requires_last_attendance;
@@ -146,13 +147,6 @@ if ($action === 'postgrades' && confirm_sesskey()) {
 
             $gradeobj->wdladate = date('Y-m-d', $gradeobj->last_attendance_date);
         }
-/*
-echo"<pre>";
-var_dump($student);
-var_dump($gradeobj);
-echo"</pre>";
-die();
-*/
 
         // Add to grades array.
         $grades[] = $gradeobj;
@@ -164,7 +158,7 @@ die();
     // Create results URL with appropriate parameters.
     $resultsurl = new moodle_url(
         '/blocks/wds_postgrades/results.php',
-        ['courseid' => $courseid, 'sectionid' => $section->id]);
+        ['courseid' => $courseid, 'sectionid' => $section->id, 'gradetype' => $gradetype]);
 
     // Add section title for context in results page.
     $resultsurl->param('sectiontitle', $sectiontitle);
@@ -238,22 +232,22 @@ die();
 echo $OUTPUT->header();
 echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $stringvar));
 
-// Check if interim grades posting is allowed for this period.
-$academicperiodid = $section->academic_period_id;
-$isinterimopen = \block_wds_postgrades\period_settings::is_interim_grading_open($academicperiodid);
-$interimstatus = \block_wds_postgrades\period_settings::get_interim_grading_status($academicperiodid);
+// Check if grades posting is allowed for this period.
+$isopen = \block_wds_postgrades\period_settings::is_grading_open($section);
+$openstatus = \block_wds_postgrades\period_settings::get_grading_status($section);
 
 // Display status message about interim grades availability.
-echo $OUTPUT->notification($interimstatus, $isinterimopen ? 'info' : 'warning');
+echo $OUTPUT->notification($openstatus, $isopen ? 'info' : 'warning');
 
 // Only show the form if interim grades are available.
-if ($isinterimopen) {
+if ($isopen) {
 
     // Start form.
     $formaction = new moodle_url('/blocks/wds_postgrades/view.php');
     echo html_writer::start_tag('form', ['method' => 'post', 'action' => $formaction]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'courseid', 'value' => $courseid]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sectionid', 'value' => $sectionid]);
+    echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'gradetype', 'value' => $gradetype]);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'action', 'value' => 'postgrades']);
     echo html_writer::empty_tag('input', ['type' => 'hidden', 'name' => 'sesskey', 'value' => sesskey()]);
 
@@ -274,12 +268,12 @@ if ($isinterimopen) {
     // End the form.
     echo html_writer::end_tag('form');
 } else {
-    echo $OUTPUT->notification(get_string('interimgradesnotavailable', 'block_wds_postgrades'), 'error');
+    echo $OUTPUT->notification(get_string('gradesnotavailable', 'block_wds_postgrades', $typeword), 'error');
 }
 
 // Back to course button (outside the form).
 $courseurl = new moodle_url('/blocks/wds_postgrades/view.php',
-    ['courseid' => $courseid, 'sectionid' => $sectionid]);
+    ['courseid' => $courseid, 'sectionid' => $sectionid, 'gradetype' => $gradetype]);
 echo $OUTPUT->single_button($courseurl, get_string('backtocourse', 'block_wds_postgrades'), 'get');
 
 echo html_writer::end_div();
