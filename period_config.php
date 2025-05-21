@@ -32,6 +32,11 @@ require_once($CFG->dirroot . '/blocks/wds_postgrades/classes/period_settings.php
 require_login();
 require_capability('moodle/site:config', context_system::instance());
 
+// Go nuts here.
+if (!is_siteadmin()) {
+    redirect(new moodle_url('/'));
+}
+
 // Set up the page.
 $PAGE->set_context(context_system::instance());
 $PAGE->set_url(new moodle_url('/blocks/wds_postgrades/period_config.php'));

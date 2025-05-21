@@ -47,11 +47,13 @@ class period_settings {
         $sql = "SELECT id, academic_period_id
                 FROM {enrol_wds_periods}
                 WHERE enabled = :enabled
-                AND end_date > :currenttime";
+                AND start_date < :currenttime1
+                AND end_date > :currenttime2";
 
         $parms = [
             'enabled' => '1',
-            'currenttime' => $currenttime
+            'currenttime1' => $currenttime,
+            'currenttime2' => $currenttime
         ];
 
         // Execute the query and return the results.

@@ -27,6 +27,10 @@ defined('MOODLE_INTERNAL') || die();
 
 if ($ADMIN->fulltree) {
 
+    if (!is_siteadmin()) {
+        redirect(new moodle_url('/'));
+    }
+
     // Add a link to the period configuration page.
     $settings->add(new admin_setting_heading(
         'block_wds_postgrades/periodconfig',
@@ -41,7 +45,6 @@ if ($ADMIN->fulltree) {
         new moodle_url('/blocks/wds_postgrades/period_config.php')
     ));
 
-/*
     // Create a link to the period configuration page.
     $periodconfigurl = new moodle_url('/blocks/wds_postgrades/period_config.php');
     $settings->add(new admin_setting_description(
@@ -50,5 +53,4 @@ if ($ADMIN->fulltree) {
         html_writer::link($periodconfigurl, get_string('periodconfiglinktext', 'block_wds_postgrades'),
             ['class' => 'btn btn-primary'])
     ));
-*/
 }
