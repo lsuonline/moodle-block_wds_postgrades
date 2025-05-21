@@ -634,13 +634,6 @@ class wdspg {
         $studentgrades = '';
         foreach ($grades as $grade) {
 
-/*
-echo"<pre>";
-var_dump($grade);
-echo"</pre>";
-die();
-*/
-
             // Student Registration Data.
             $sectionlistingid = $grade->section_listing_id;
             $universalid = $grade->universal_id;
@@ -655,8 +648,8 @@ die();
                 $sdtype = "Student_Grades_Data";
 
                 // If we have a last date of attendance set, send it.
-                if (isset($grade->requires_last_attendance)) {
-                    $ld = date('Y-m-d', $grade->last_attendance_date);
+                if (isset($grade->wdladate)) {
+                    $ld = $grade->wdladate;
                     $ldoa = "<wd:Student_Last_Date_of_Attendance>$ld</wd:Student_Last_Date_of_Attendance>";
                 } else {
                     $ldoa = "";

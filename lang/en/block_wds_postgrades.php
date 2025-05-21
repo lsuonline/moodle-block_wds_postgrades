@@ -111,3 +111,12 @@ $string['postedby'] = 'Posted by {$a}';
 $string['allgradesposted'] = 'All final grades for this section have been posted to Workday Student.';
 $string['nopostablegrades'] = 'There are no grades to post for this section at this time.';
 $string['remaininggrades'] = 'Posting {$a} remaining final grades.';
+
+// Last attendance date strings
+$string['lastattendancedate'] = 'Last Attendance Date';
+$string['lastattendancedaterequired'] = 'Required for failing grade';
+$string['lastattendancedatenotapplicable'] = 'N/A';
+$string['lastattendancedatemissing'] = 'A last attendance date is required for failing grades';
+$string['lastattendancedateinvalid'] = 'The last attendance date format is invalid';
+$string['lastattendancedateexpired'] = 'The last attendance date cannot be in the future';
+$string['lastattendancedateexample'] = 'Format: YYYY-MM-DD';
