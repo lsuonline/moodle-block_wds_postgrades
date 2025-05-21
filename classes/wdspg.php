@@ -37,355 +37,369 @@ require_once($CFG->dirroot . '/grade/report/lib.php');
  */
 class wdspg {
 
-/**
- * Record a successful final grade posting.
- *
- * @param object $grade The grade object containing student and grade information.
- * @param int $courseid The course ID.
- * @param int $sectionid The section ID.
- * @param int $userid The student's user ID.
- * @return bool Success status.
- */
-public static function record_posted_grade($grade, $courseid, $sectionid, $userid) {
-    global $DB, $USER;
+    /**
+     * Record a successful final grade posting.
+     *
+     * @param object $grade The grade object containing student and grade information.
+     * @param int $courseid The course ID.
+     * @param int $sectionid The section ID.
+     * @param int $userid The student's user ID.
+     * @return bool Success status.
+     */
+    public static function record_posted_grade($grade, $courseid, $sectionid, $userid) {
+        global $DB, $USER;
 
-    // Only track final grades
-    if (empty($grade->gradetype) || $grade->gradetype !== 'final') {
-        return false;
+        // Only track final grades
+        if (empty($grade->gradetype) || $grade->gradetype !== 'final') {
+            return false;
+        }
+
+        // Check if this grade was already posted.
+        $conditions = [
+            'sectionid' => $sectionid,
+            'universal_id' => $grade->universal_id
+        ];
+
+        if ($DB->record_exists('block_wds_postgrades_posts', $conditions)) {
+
+            // Already exists, update it.
+            $record = $DB->get_record('block_wds_postgrades_posts', $conditions);
+            $record->grade_id = $grade->grade_id;
+            $record->grade_display = $grade->grade_display;
+            $record->posted_by = $USER->id;
+            $record->timecreated = time();
+
+            return $DB->update_record('block_wds_postgrades_posts', $record);
+        } else {
+
+            // Create new record.
+            $record = new \stdClass();
+            $record->courseid = $courseid;
+            $record->sectionid = $sectionid;
+            $record->universal_id = $grade->universal_id;
+            $record->grade_id = $grade->grade_id;
+            $record->grade_display = $grade->grade_display;
+            $record->userid = $userid;
+            $record->posted_by = $USER->id;
+            $record->timecreated = time();
+
+            return $DB->insert_record('block_wds_postgrades_posts', $record) ? true : false;
+        }
     }
 
-    // Check if this grade was already posted
-    $conditions = [
-        'sectionid' => $sectionid,
-        'universal_id' => $grade->universal_id
-    ];
+    /**
+     * Get previously posted grades for a section.
+     *
+     * @param int $sectionid The section ID.
+     * @return array Array of posted grade records.
+     */
+    public static function get_posted_grades($sectionid) {
+        global $DB;
 
-    if ($DB->record_exists('block_wds_postgrades_posts', $conditions)) {
-        // Already exists, update it
-        $record = $DB->get_record('block_wds_postgrades_posts', $conditions);
-        $record->grade_id = $grade->grade_id;
-        $record->grade_display = $grade->grade_display;
-        $record->posted_by = $USER->id;
-        $record->timecreated = time();
-
-        return $DB->update_record('block_wds_postgrades_posts', $record);
-    } else {
-        // Create new record
-        $record = new \stdClass();
-        $record->courseid = $courseid;
-        $record->sectionid = $sectionid;
-        $record->universal_id = $grade->universal_id;
-        $record->grade_id = $grade->grade_id;
-        $record->grade_display = $grade->grade_display;
-        $record->userid = $userid;
-        $record->posted_by = $USER->id;
-        $record->timecreated = time();
-
-        return $DB->insert_record('block_wds_postgrades_posts', $record) ? true : false;
-    }
-}
-
-/**
- * Get previously posted grades for a section.
- *
- * @param int $sectionid The section ID.
- * @return array Array of posted grade records.
- */
-public static function get_posted_grades($sectionid) {
-    global $DB;
-
-    $sql = "SELECT p.*, u.firstname, u.lastname,
-                   u2.firstname AS poster_firstname, u2.lastname AS poster_lastname
+        $sql = "SELECT
+            p.*,
+            u.firstname,
+            u.lastname,
+            u2.firstname AS poster_firstname,
+            u2.lastname AS poster_lastname
             FROM {block_wds_postgrades_posts} p
-            JOIN {user} u ON u.id = p.userid
-            JOIN {user} u2 ON u2.id = p.posted_by
+            INNER JOIN {user} u ON u.id = p.userid
+            INNER JOIN {user} u2 ON u2.id = p.posted_by
             WHERE p.sectionid = :sectionid
             ORDER BY p.timecreated DESC";
 
-    return $DB->get_records_sql($sql, ['sectionid' => $sectionid]);
-}
-
-/**
- * Check if a student's grade has already been posted.
- *
- * @param int $sectionid The section ID.
- * @param string $universalid The student's universal ID.
- * @return object|false The posted grade record or false if not found.
- */
-public static function check_grade_posted($sectionid, $universalid) {
-    global $DB;
-
-    $conditions = [
-        'sectionid' => $sectionid,
-        'universal_id' => $universalid
-    ];
-
-    return $DB->get_record('block_wds_postgrades_posts', $conditions);
-}
-
-/**
- * Extended version of post_grades_with_method that records successful postings.
- *
- * @param array $grades Array of grade objects to be posted.
- * @param string $gradetype Type of grades being posted ('final' or 'interim').
- * @param string $sectionlistingid The Workday Section Listing ID for the course section.
- * @param int $courseid The course ID.
- * @param int $sectionid The section ID.
- * @return object Results object containing successes and failures.
- */
-public static function post_grades_with_method_extended($grades, $gradetype, $sectionlistingid, $courseid, $sectionid) {
-    // Call the original method
-    $results = self::post_grades_with_method($grades, $gradetype, $sectionlistingid);
-
-    // If this is a final grade posting, record the successful postings
-    if ($gradetype === 'final' && !empty($results->successes)) {
-        foreach ($results->successes as $grade) {
-            // Add gradetype to the grade object for tracking
-            $grade->gradetype = $gradetype;
-            self::record_posted_grade($grade, $courseid, $sectionid, $grade->userid);
-        }
+        return $DB->get_records_sql($sql, ['sectionid' => $sectionid]);
     }
 
-    return $results;
-}
+    /**
+     * Check if a student's grade has already been posted.
+     *
+     * @param int $sectionid The section ID.
+     * @param string $universalid The student's universal ID.
+     * @return object|false The posted grade record or false if not found.
+     */
+    public static function check_grade_posted($sectionid, $universalid) {
+        global $DB;
 
-/**
- * Generate HTML table for the grades, with posted status indicator for final grades.
- *
- * @param array $enrolledstudents Array of enrolled students.
- * @param int $courseid The course ID.
- * @param int $sectionid The section ID.
- * @param string $gradetype Type of grades ('final' or 'interim').
- * @return array Array containing table HTML and statistics.
- */
-public static function generate_grades_table_with_status($enrolledstudents, $courseid, $sectionid, $gradetype) {
-    global $OUTPUT;
-
-    $result = [
-        'html' => '',
-        'stats' => [
-            'total' => 0,
-            'posted' => 0,
-            'available' => 0
-        ]
-    ];
-
-    if (empty($enrolledstudents)) {
-        $result['html'] = get_string('nostudents', 'block_wds_postgrades');
-        return $result;
-    }
-
-    $table = new \html_table();
-    $table->attributes['class'] = 'wdspgrades generaltable';
-
-    // Different headers based on grade type
-    if ($gradetype === 'final') {
-        $table->head = [
-            get_string('firstname', 'block_wds_postgrades'),
-            get_string('lastname', 'block_wds_postgrades'),
-            get_string('universalid', 'block_wds_postgrades'),
-            get_string('gradingbasis', 'block_wds_postgrades'),
-            get_string('letter', 'block_wds_postgrades'),
-            get_string('grade', 'block_wds_postgrades'),
-            get_string('status', 'block_wds_postgrades')
-        ];
-    } else {
-        $table->head = [
-            get_string('firstname', 'block_wds_postgrades'),
-            get_string('lastname', 'block_wds_postgrades'),
-            get_string('universalid', 'block_wds_postgrades'),
-            get_string('gradingbasis', 'block_wds_postgrades'),
-            get_string('letter', 'block_wds_postgrades'),
-            get_string('grade', 'block_wds_postgrades')
-        ];
-    }
-
-    // Get course grade item from first student
-    $firststudent = reset($enrolledstudents);
-    $coursegradeitemid = $firststudent->coursegradeitem;
-
-    // Check if we have a valid grade item
-    $gradeitem = self::get_course_grade_item($coursegradeitemid);
-
-    // We have no grades. Rethink your life.
-    if ($gradeitem === false) {
-        $result['html'] = get_string('nocoursegrade', 'block_wds_postgrades');
-        return $result;
-    }
-
-    // If final grades, get all previously posted grades
-    $postedgrades = [];
-    $alreadyposted = 0;
-    $postable = 0;
-    $totalstudents = count($enrolledstudents);
-
-    if ($gradetype === 'final') {
-        $postedgrades = self::get_posted_grades($sectionid);
-        // Convert to a lookup by universal_id
-        $postedgradelookup = [];
-        foreach ($postedgrades as $pg) {
-            $postedgradelookup[$pg->universal_id] = $pg;
-        }
-        $postedgrades = $postedgradelookup;
-    }
-
-    // Build the table rows
-    foreach ($enrolledstudents as $student) {
-        // Get the formatted grade
-        $finalgrade = self::get_formatted_grade($student->coursegradeitem, $student->userid, $courseid);
-
-        // Get the grade code
-        $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
-
-        // Skip invalid grades
-        if (!$gradecode) {
-            mtrace("Not processing {$student->firstname} {$student->lastname} due to multiple workday grade codes.");
-            unset($student);
-            continue;
-        } else if ($gradecode->grade_display == 'No Grade') {
-            mtrace("Not processing {$student->firstname} {$student->lastname} due to them not having a final grade.");
-            unset($student);
-            continue;
-        }
-
-        // This is a valid grade, count it
-        $postable++;
-
-        // Build the table row
-        $tablerow = [
-            $student->firstname,
-            $student->lastname,
-            $student->universal_id,
-            $student->grading_basis,
-            $finalgrade->letter,
-            $gradecode->grade_display
+        $conditions = [
+            'sectionid' => $sectionid,
+            'universal_id' => $universalid
         ];
 
-        // Add status column for final grades
+        return $DB->get_record('block_wds_postgrades_posts', $conditions);
+    }
+
+    /**
+     * Extended version of post_grades_with_method that records successful postings.
+     *
+     * @param array $grades Array of grade objects to be posted.
+     * @param string $gradetype Type of grades being posted ('final' or 'interim').
+     * @param string $sectionlistingid The Workday Section Listing ID for the course section.
+     * @param int $courseid The course ID.
+     * @param int $sectionid The section ID.
+     * @return object Results object containing successes and failures.
+     */
+    public static function post_grades_with_method_extended($grades, $gradetype, $sectionlistingid, $courseid, $sectionid) {
+
+        // Call the original method.
+        $results = self::post_grades_with_method($grades, $gradetype, $sectionlistingid);
+
+        // If this is a final grade posting, record the successful postings.
+        if ($gradetype === 'final' && !empty($results->successes)) {
+            foreach ($results->successes as $grade) {
+
+                // Add gradetype to the grade object for tracking.
+                $grade->gradetype = $gradetype;
+                self::record_posted_grade($grade, $courseid, $sectionid, $grade->userid);
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Generate HTML table for the grades, with posted status indicator for final grades.
+     *
+     * @param array $enrolledstudents Array of enrolled students.
+     * @param int $courseid The course ID.
+     * @param int $sectionid The section ID.
+     * @param string $gradetype Type of grades ('final' or 'interim').
+     * @return array Array containing table HTML and statistics.
+     */
+    public static function generate_grades_table_with_status($enrolledstudents, $courseid, $sectionid, $gradetype) {
+        global $OUTPUT;
+
+        $result = [
+            'html' => '',
+            'stats' => [
+                'total' => 0,
+                'posted' => 0,
+                'available' => 0
+            ]
+        ];
+
+        if (empty($enrolledstudents)) {
+            $result['html'] = get_string('nostudents', 'block_wds_postgrades');
+            return $result;
+        }
+
+        $table = new \html_table();
+        $table->attributes['class'] = 'wdspgrades generaltable';
+
+        // Different headers based on grade type.
         if ($gradetype === 'final') {
-            $status = 'Not poasted';
+            $table->head = [
+                get_string('firstname', 'block_wds_postgrades'),
+                get_string('lastname', 'block_wds_postgrades'),
+                get_string('universalid', 'block_wds_postgrades'),
+                get_string('gradingbasis', 'block_wds_postgrades'),
+                get_string('letter', 'block_wds_postgrades'),
+                get_string('grade', 'block_wds_postgrades'),
+                get_string('status', 'block_wds_postgrades')
+            ];
+        } else {
+            $table->head = [
+                get_string('firstname', 'block_wds_postgrades'),
+                get_string('lastname', 'block_wds_postgrades'),
+                get_string('universalid', 'block_wds_postgrades'),
+                get_string('gradingbasis', 'block_wds_postgrades'),
+                get_string('letter', 'block_wds_postgrades'),
+                get_string('grade', 'block_wds_postgrades')
+            ];
+        }
 
-            // Check if this grade was already posted
-            if (isset($postedgrades[$student->universal_id])) {
-                $postedgrade = $postedgrades[$student->universal_id];
-                $alreadyposted++;
+        // Get course grade item from first student.
+        $firststudent = reset($enrolledstudents);
+        $coursegradeitemid = $firststudent->coursegradeitem;
 
-                // Format the date
-                $postdate = userdate($postedgrade->timecreated, get_string('strftimedatetime', 'core_langconfig'));
-                $poster = $postedgrade->poster_firstname . ' ' . $postedgrade->poster_lastname;
+        // Check if we have a valid grade item.
+        $gradeitem = self::get_course_grade_item($coursegradeitemid);
 
-                // Create status with icon
-                $status = $OUTPUT->pix_icon('i/checkedcircle', get_string('alreadyposted', 'block_wds_postgrades'), 'moodle', ['class' => 'text-success']);
-                $status .= ' ' . get_string('alreadyposted', 'block_wds_postgrades');
-                $status .= \html_writer::tag('div', get_string('dateposted', 'block_wds_postgrades', $postdate), ['class' => 'small text-muted']);
-                $status .= \html_writer::tag('div', get_string('postedby', 'block_wds_postgrades', $poster), ['class' => 'small text-muted']);
+        // We have no grades. Rethink your life.
+        if ($gradeitem === false) {
+            $result['html'] = get_string('nocoursegrade', 'block_wds_postgrades');
+            return $result;
+        }
 
-                // Add a hidden field to exclude this grade
-                $status .= \html_writer::empty_tag('input', [
-                    'type' => 'hidden',
-                    'name' => 'already_posted[]',
-                    'value' => $student->universal_id
-                ]);
-            } else {
-                // Not posted yet, include for posting
-                $status = \html_writer::empty_tag('input', [
-                    'type' => 'hidden',
-                    'name' => 'students_to_post[]',
-                    'value' => $student->universal_id
-                ]);
+        // If finals, get all previously posted grades.
+        $postedgrades = [];
+        $alreadyposted = 0;
+        $postable = 0;
+        $totalstudents = count($enrolledstudents);
 
-                // Prepare student data for posting
-                foreach (['userid', 'section_listing_id', 'grading_scheme', 'grading_basis'] as $field) {
-                    if (isset($student->$field)) {
-                        $status .= \html_writer::empty_tag('input', [
-                            'type' => 'hidden',
-                            'name' => "student_data[{$student->universal_id}][{$field}]",
-                            'value' => $student->$field
-                        ]);
-                    }
-                }
+        if ($gradetype === 'final') {
+            $postedgrades = self::get_posted_grades($sectionid);
+
+            // Convert to a lookup by universal_id.
+            $postedgradelookup = [];
+            foreach ($postedgrades as $pg) {
+                $postedgradelookup[$pg->universal_id] = $pg;
+            }
+            $postedgrades = $postedgradelookup;
+        }
+
+        // Build the table rows.
+        foreach ($enrolledstudents as $student) {
+
+            // Get the formatted grade.
+            $finalgrade = self::get_formatted_grade($student->coursegradeitem, $student->userid, $courseid);
+
+            // Get the grade code.
+            $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
+
+            // Skip invalid grades.
+            if (!$gradecode) {
+                mtrace("Not processing {$student->firstname} {$student->lastname} due to multiple workday grade codes.");
+                unset($student);
+                continue;
+
+            // We should not be here because I am catching this in the call to get_formatted_grade and failing them.
+            } else if ($gradecode->grade_display == 'No Grade') {
+                mtrace("Not processing {$student->firstname} {$student->lastname} due to them not having a final grade.");
+                unset($student);
+                continue;
             }
 
-            $tablerow[] = $status;
+            // This is a valid grade, count it.
+            $postable++;
+
+            // Build the table row.
+            $tablerow = [
+                $student->firstname,
+                $student->lastname,
+                $student->universal_id,
+                $student->grading_basis,
+                $finalgrade->letter,
+                $gradecode->grade_display
+            ];
+
+            // Add status column for final grades.
+            if ($gradetype === 'final') {
+                $status = 'Not poasted';
+
+                // Check if this grade was already posted.
+                if (isset($postedgrades[$student->universal_id])) {
+                    $postedgrade = $postedgrades[$student->universal_id];
+                    $alreadyposted++;
+
+                    // Format the date.
+                    $postdate = userdate($postedgrade->timecreated, get_string('strftimedatetime', 'core_langconfig'));
+                    $poster = $postedgrade->poster_firstname . ' ' . $postedgrade->poster_lastname;
+
+                    // Create status with icon.
+                    $status = $OUTPUT->pix_icon('i/checkedcircle',
+                        get_string('alreadyposted', 'block_wds_postgrades'),
+                        'moodle',
+                        ['class' => 'text-success']);
+
+                    $status .= ' ' . get_string('alreadyposted', 'block_wds_postgrades');
+                    $status .= \html_writer::tag('div',
+                        get_string('dateposted', 'block_wds_postgrades', $postdate),
+                        ['class' => 'small text-muted']);
+
+                    $status .= \html_writer::tag('div',
+                        get_string('postedby', 'block_wds_postgrades', $poster),
+                        ['class' => 'small text-muted']);
+
+                    // Add a hidden field to exclude this grade.
+                    $status .= \html_writer::empty_tag('input', [
+                        'type' => 'hidden',
+                        'name' => 'already_posted[]',
+                        'value' => $student->universal_id
+                    ]);
+                } else {
+
+                    // Not posted yet, include for posting.
+                    $status = \html_writer::empty_tag('input', [
+                        'type' => 'hidden',
+                        'name' => 'students_to_post[]',
+                        'value' => $student->universal_id
+                    ]);
+
+                    // Prepare student data for posting.
+                    foreach (['userid', 'section_listing_id', 'grading_scheme', 'grading_basis'] as $field) {
+                        if (isset($student->$field)) {
+                            $status .= \html_writer::empty_tag('input', [
+                                'type' => 'hidden',
+                                'name' => "student_data[{$student->universal_id}][{$field}]",
+                                'value' => $student->$field
+                            ]);
+                        }
+                    }
+                }
+
+                $tablerow[] = $status;
+            }
+
+            $table->data[] = $tablerow;
         }
 
-        $table->data[] = $tablerow;
-    }
-
-    // Generate the table HTML if we have any data
-    if (!empty($table->data)) {
-        $result['html'] = \html_writer::table($table);
-    } else {
-        $result['html'] = get_string('nostudents', 'block_wds_postgrades');
-    }
-
-    // Set statistics
-    $result['stats'] = [
-        'total' => $totalstudents,
-        'posted' => $alreadyposted,
-        'available' => $postable - $alreadyposted
-    ];
-
-    return $result;
-}
-
-/**
- * Check if all final grades for a section have been posted.
- *
- * @param int $sectionid The section ID.
- * @param array $enrolledstudents Array of enrolled students.
- * @param int $courseid The course ID.
- * @return bool True if all grades have been posted.
- */
-public static function all_final_grades_posted($sectionid, $enrolledstudents, $courseid) {
-    global $DB;
-
-    // Count valid grades
-    $validgrades = 0;
-    $postedgrades = 0;
-
-    // Get all posted grades for this section
-    $posted = self::get_posted_grades($sectionid);
-    $postedids = [];
-
-    foreach ($posted as $p) {
-        $postedids[$p->universal_id] = true;
-    }
-
-    // Check each student
-    foreach ($enrolledstudents as $student) {
-        // Get the formatted grade
-        $finalgrade = self::get_formatted_grade($student->coursegradeitem, $student->userid, $courseid);
-
-        // Get the grade code
-        $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
-
-        // Skip invalid grades
-        if (!$gradecode || $gradecode->grade_display == 'No Grade') {
-            continue;
+        // Generate the table HTML if we have any data.
+        if (!empty($table->data)) {
+            $result['html'] = \html_writer::table($table);
+        } else {
+            $result['html'] = get_string('nostudents', 'block_wds_postgrades');
         }
 
-        // Count valid grades
-        $validgrades++;
+        // Set statistics.
+        $result['stats'] = [
+            'total' => $totalstudents,
+            'posted' => $alreadyposted,
+            'available' => $postable - $alreadyposted
+        ];
 
-        // Check if posted
-        if (isset($postedids[$student->universal_id])) {
-            $postedgrades++;
-        }
+        return $result;
     }
 
-    // All grades are posted if there are valid grades and all of them are posted
-    return ($validgrades > 0 && $validgrades == $postedgrades);
-}
+    /**
+     * Check if all final grades for a section have been posted.
+     *
+     * @param int $sectionid The section ID.
+     * @param array $enrolledstudents Array of enrolled students.
+     * @param int $courseid The course ID.
+     * @return bool True if all grades have been posted.
+     */
+    public static function all_final_grades_posted($sectionid, $enrolledstudents, $courseid) {
+        global $DB;
 
+        // Count valid grades.
+        $validgrades = 0;
+        $postedgrades = 0;
 
+        // Get all posted grades for this section.
+        $posted = self::get_posted_grades($sectionid);
+        $postedids = [];
 
+        foreach ($posted as $p) {
+            $postedids[$p->universal_id] = true;
+        }
 
+        // Check each student.
+        foreach ($enrolledstudents as $student) {
 
+            // Get the formatted grade.
+            $finalgrade = self::get_formatted_grade($student->coursegradeitem, $student->userid, $courseid);
 
+            // Get the grade code.
+            $gradecode = self::get_graded_wds_gradecode($student, $finalgrade);
 
+            // Skip invalid grades.
+            if (!$gradecode || $gradecode->grade_display == 'No Grade') {
+                continue;
+            }
 
+            // Count valid grades.
+            $validgrades++;
 
+            // Check if posted.
+            if (isset($postedids[$student->universal_id])) {
+                $postedgrades++;
+            }
+        }
+
+        // All grades are posted if there are valid grades and all of them are posted.
+        return ($validgrades > 0 && $validgrades == $postedgrades);
+    }
 
     /**
      * Post grades to Workday using the configured posting method.
