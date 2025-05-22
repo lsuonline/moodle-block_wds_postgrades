@@ -1023,6 +1023,52 @@ class wdspg {
         return \grade_item::fetch(['id' => $gradeitemid]);
     }
 
+    public static function get_scale_grade_display($scaleid, $finalgrade, $gradeitem) {
+        global $DB;
+
+        // Get the scale record..
+        $scalerecord = $DB->get_record('scale', array('id' => $scaleid), '*', MUST_EXIST);
+
+        // Instantiate the scale.
+        $gradescale = new \grade_scale($scalerecord, false);
+
+        // If we do not have these set, set them.
+        if (empty($gradescale->scale_items)) {
+            $gradescale->scale_items = explode(',', $gradescale->scale);
+        }
+
+        // For later.
+        $scaleitems = $gradescale->scale_items;
+
+        // Make sure we're dealing with integers for comparison.
+        $gradevalue = (int)$finalgrade;
+
+        // We're not dealing with anything weird.
+        $scalegradetext = $scaleitems[$gradevalue - 1];
+
+        // If we have a 0, return the 1st entry.
+        if ($gradevalue < 1) {
+            $scalegradetext = reset($scaleitems);
+            return $scalegradetext;
+        }
+
+        // If the grade is higher than the highest scale, return the last value.
+        if ($gradevalue > count($scaleitems)) {
+            $scalegradetext = end($scaleitems);
+            return $scalegradetext;
+        }
+
+        // We're not dealing with anything weird.
+        $scalegradetext = $scaleitems[$gradevalue - 1];
+
+        // Apply any additional formatting if needed.
+        if ($gradeitem && method_exists($gradeitem, 'format_grade')) {
+            return $gradeitem->format_grade($finalgrade, true);
+        }
+
+        return $scalegradetext;
+    }
+
     /**
      * Get formatted grade for a student.
      *
@@ -1032,7 +1078,7 @@ class wdspg {
      * @return @string The formatted grade.
      */
     public static function get_formatted_grade($gradeitemid, $userid, $courseid) {
-        global $CFG;
+        global $DB, $CFG;
 
         // Build this to store the formatted grades later.
         $formattedgrades = new \stdClass();
@@ -1069,6 +1115,15 @@ class wdspg {
         );
 
         // Format the grade according to different display types. Percent.
+        $formattedgrades->scale = grade_format_gradevalue(
+            $grade->finalgrade,
+            $gradeitem,
+            true,
+            GRADE_DISPLAY_TYPE_PERCENTAGE,
+            $gradedecimalpoints
+        );
+
+        // Format the grade according to different display types. Percent.
         $formattedgrades->percent = grade_format_gradevalue(
             $grade->finalgrade,
             $gradeitem,
@@ -1077,14 +1132,24 @@ class wdspg {
             $gradedecimalpoints
         );
 
-        // Format the grade according to different display types. Letter.
-        $formattedgrades->letter = grade_format_gradevalue(
-            $grade->finalgrade,
-            $gradeitem,
-            true,
-            GRADE_DISPLAY_TYPE_LETTER,
-            $gradedecimalpoints
-        );
+        // If we're dealing with scales, set the grade letter to be the scale name.
+        if (!is_null($gradeitem->scaleid)) {
+            $gradescale = self::get_scale_grade_display($gradeitem->scaleid, $grade->finalgrade, $gradeitem);
+
+            // Format the grade according to different display types. Scale.
+            $formattedgrades->letter = $gradescale;
+
+        } else {
+
+            // Format the grade according to different display types. Letter.
+            $formattedgrades->letter = grade_format_gradevalue(
+                $grade->finalgrade,
+                $gradeitem,
+                true,
+                GRADE_DISPLAY_TYPE_LETTER,
+                $gradedecimalpoints
+            );
+        }
 
         return $formattedgrades;
     }
