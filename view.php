@@ -245,6 +245,16 @@ if ($action === 'postgrades' && confirm_sesskey()) {
 
 // Start output.
 echo $OUTPUT->header();
+
+// Modal for loading spinner.
+echo '<div id="loadingModal" class="modal" style="display:none;">';
+echo '  <div class="modal-content">';
+echo '    <h4>Posting Grades</h4>';
+echo '    <p>Please wait while grades are being posted...</p>';
+echo '    <div class="spinner"></div>';
+echo '  </div>';
+echo '</div>';
+
 echo $OUTPUT->heading(get_string('gradesfor', 'block_wds_postgrades', $stringvar));
 
 // Check if grades posting is allowed for this period.
@@ -274,6 +284,35 @@ if ($isopen) {
             $PAGE->requires->js_init_code('
                 require(["jquery"], function($) {
                     $(".attendance-date-picker").attr("type", "date");
+                });
+            ');
+
+            // JavaScript for loading modal.
+            $PAGE->requires->js_init_code('
+                require(["jquery"], function($) {
+                    $(document).ready(function() {
+                        const loadingModal = $("#loadingModal");
+
+                        // Function to show the modal
+                        window.showLoadingModal = function() {
+                            if (loadingModal.length) {
+                                loadingModal.show();
+                            }
+                        };
+
+                        // Function to hide the modal
+                        window.hideLoadingModal = function() {
+                            if (loadingModal.length) {
+                                loadingModal.hide();
+                            }
+                        };
+
+                        // Hide modal on page load, just in case.
+                        // It is initially hidden by CSS, but this is an extra precaution.
+                        if (loadingModal.length) {
+                             hideLoadingModal();
+                        }
+                    });
                 });
             ');
         }
@@ -335,7 +374,7 @@ if ($isopen) {
 
             if ($canpost) {
                 echo html_writer::tag('button', get_string('postgrades', 'block_wds_postgrades'),
-                    ['type' => 'submit', 'class' => 'btn btn-primary']);
+                    ['type' => 'submit', 'class' => 'btn btn-primary', 'onclick' => 'showLoadingModal();']);
                 echo ' ';
             }
         }
