@@ -315,6 +315,36 @@ if ($isopen) {
                     });
                 });
             ');
+        } else {
+
+            // JavaScript for loading modal.
+            $PAGE->requires->js_init_code('
+                require(["jquery"], function($) {
+                    $(document).ready(function() {
+                        const loadingModal = $("#loadingModal");
+
+                        // Function to show the modal
+                        window.showLoadingModal = function() {
+                            if (loadingModal.length) {
+                                loadingModal.show();
+                            }
+                        };
+
+                        // Function to hide the modal
+                        window.hideLoadingModal = function() {
+                            if (loadingModal.length) {
+                                loadingModal.hide();
+                            }
+                        };
+
+                        // Hide modal on page load, just in case.
+                        // It is initially hidden by CSS, but this is an extra precaution.
+                        if (loadingModal.length) {
+                             hideLoadingModal();
+                        }
+                    });
+                });
+            ');
         }
 
         // Start form.
