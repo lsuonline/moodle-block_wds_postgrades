@@ -509,9 +509,27 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
         if (!isset($postedgrades[$student->universal_id])) {
             if ($isfailinggrade) {
 
+                // Get student period start date.
+                $sps = $student->periodstart - (86400 * 10);
+
                 // Get default last access date.
                 $lastaccess = \block_wds_postgrades\wdspg::get_wds_sla($student->userid, $courseid);
-                $defaultdate = ($lastaccess > 0) ? date('Y-m-d', $lastaccess) : date('Y-m-d');
+
+                // If we don't have any last access dates, it returns false, so check for that.
+                if ($lastaccess) {
+
+                   // Set this to the last access date.
+                   $lata = (int)$lastaccess->timeaccess;
+                } else {
+
+                   // Set this to 0.
+                   $lata = 0;
+                }
+
+                // Build out the default date for the picker.
+                $defaultdate = ($lata > 0) ?
+                    date('Y-m-d', $lata) :
+                    date('Y-m-d', $sps);
 
                 // Create date picker.
                 $attendancedatefield = html_writer::empty_tag('input', [

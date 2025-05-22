@@ -966,11 +966,16 @@ class wdspg {
                 cou.course_number,
                 sec.moodle_status AS courseid,
                 COALESCE(sm.data, 'Undergraduate') AS academic_level,
+                per.academic_period_id,
+                per.start_date AS periodstart,
+                per.end_date AS periodend,
                 gi.id AS coursegradeitem
             FROM {course} c
             INNER JOIN {enrol_wds_sections} sec
                 ON sec.moodle_status = c.id
                 AND sec.id = :sectionid
+            INNER JOIN {enrol_wds_periods} per
+                ON per.academic_period_id = sec.academic_period_id
             INNER JOIN {enrol_wds_courses} cou
                 ON cou.course_listing_id = sec.course_listing_id
             INNER JOIN {enrol_wds_student_enroll} stuenr
