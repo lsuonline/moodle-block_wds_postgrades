@@ -115,8 +115,16 @@ $string['remaininggrades'] = 'Posting {$a} remaining final grades.';
 // Last attendance date strings
 $string['lastattendancedate'] = 'Last Attendance Date';
 $string['lastattendancedaterequired'] = 'Required for failing grade';
-$string['lastattendancedatenotapplicable'] = 'N/A';
+$string['lastattendancedatenotapplicable'] = 'Not Required';
 $string['lastattendancedatemissing'] = 'A last attendance date is required for failing grades';
 $string['lastattendancedateinvalid'] = 'The last attendance date format is invalid';
 $string['lastattendancedateexpired'] = 'The last attendance date cannot be in the future';
 $string['lastattendancedateexample'] = 'Format: YYYY-MM-DD';
+
+// Workday API settings.
+$string['workdayapiurl'] = 'Workday API URL';
+$string['workdayapiurldesc'] = 'Enter the base URL for the Workday Student Records API.';
+$string['workdayapiversion'] = 'Workday API Version';
+$string['workdayapiversiondesc'] = 'Enter the Workday API version. Do not include the "v".';
+$string['usernamesuffix'] = 'Username suffix';
+$string['usernamesuffixdesc'] = 'Workday webservice requires a username suffix. We use @lsu.';

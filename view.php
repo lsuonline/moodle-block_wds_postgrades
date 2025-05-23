@@ -614,7 +614,7 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
                     'Required for this grade value',
                     ['class' => 'small text-danger']);
             } else {
-                $attendancedatefield = 'N/A';
+                $attendancedatefield = get_string('lastattendancedatenotapplicable', 'block_wds_postgrades');
             }
         } else {
 
@@ -622,7 +622,7 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
             if (isset($postedgrade->last_attendance_date)) {
                 $attendancedatefield = userdate($postedgrade->last_attendance_date, get_string('strfdateshortmonth', 'langconfig'));
             } else {
-                $attendancedatefield = 'N/A';
+                $attendancedatefield = get_string('lastattendancedatenotapplicable', 'block_wds_postgrades');
             }
         }
 

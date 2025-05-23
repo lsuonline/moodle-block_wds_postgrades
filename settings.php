@@ -43,6 +43,33 @@ if ($ADMIN->fulltree) {
         ]
     ));
 
+    // Add setting for Workday username suffix.
+    $settings->add(new admin_setting_configtext(
+        'block_wds_postgrades/usernamesuffix',
+        get_string('usernamesuffix', 'block_wds_postgrades'),
+        get_string('usernamesuffixdesc', 'block_wds_postgrades'),
+        'lsu',
+        PARAM_TEXT
+    ));
+
+    // Add setting for Workday API URL.
+    $settings->add(new admin_setting_configtext(
+        'block_wds_postgrades/workdayapiurl',
+        get_string('workdayapiurl', 'block_wds_postgrades'),
+        get_string('workdayapiurldesc', 'block_wds_postgrades'),
+        'https://services1.myworkday.com/ccx/service/universityname/Student_Records/',
+        PARAM_URL
+    ));
+
+    // Add setting for Workday API Version.
+    $settings->add(new admin_setting_configtext(
+        'block_wds_postgrades/workdayapiversion',
+        get_string('workdayapiversion', 'block_wds_postgrades'),
+        get_string('workdayapiversiondesc', 'block_wds_postgrades'),
+        '43.0',
+        PARAM_TEXT
+    ));
+
     // Register the external page for period configuration.
     $ADMIN->add('blocksettings', new admin_externalpage(
         'block_wds_postgrades_periodconfig',

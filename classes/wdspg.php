@@ -712,9 +712,22 @@ class wdspg {
      */
     public static function get_settings() {
         $s = new \stdClass();
+        $bs = new \stdClass();
 
-        // Get the settings.
+        // Get the PG settings.
+        $bs = get_config('block_wds_postgrades');
+
+        // Get the WDS settings.
         $s = get_config('enrol_workdaystudent');
+
+        // Add the posting method.
+        $s->postingmethod = $bs->postingmethod;
+
+        // Add the suffix.
+        $s->usernamesuffix = $bs->usernamesuffix;
+
+        $s->workdayapiurl = $bs->workdayapiurl;
+        $s->workdayapiversion = $bs->workdayapiversion;
 
         return $s;
     }
@@ -740,15 +753,14 @@ class wdspg {
         // Build out the xml.
         $xml = self::buildsoapxml($s, $grades, $gradetype, $sectionlistingid);
 
-        // Workday API credentials. TODO: Update to lsu14!!!
-        $username = $s->username . "@lsu";
+        // Workday API credentials.
+        $username = $s->username . $s->usernamesuffix;
         $password = $s->password;
 
-        $version = "v" . $s->apiversion;
+        $version = $s->workdayapiversion;
 
-        // TODO: Make this a setting.
         // Workday API endpoint for the Submit_Grades_for_Registrations SOAP operation.
-        $workdayurl = "https://wd2-impl-services1.workday.com/ccx/service/lsu/Student_Records/$version";
+        $workdayurl = rtrim($s->workdayapiurl, '/') . '/' . $version;
 
         // Initiate the curl handler.
         $ch = curl_init($workdayurl);
@@ -846,10 +858,10 @@ class wdspg {
             $bpparms = "";
         }
 
-        // Workday API credentials. TODO: Update to lsu14!!!
-        $username = $s->username . "@lsu";
+        // Workday API credentials.
+        $username = $s->username . $s->usernamesuffix;
         $password = $s->password;
-        $version = "v" . $s->apiversion;
+        $version = "v" . $s->workdayapiversion;
 
         // Build out the student grades portion of the xml.
         $gradesxml = self::buildgradestopost($grades, $gradetype);
