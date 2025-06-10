@@ -1114,6 +1114,9 @@ class wdspg {
         // Get the grade.
         $grade = new \grade_grade(['itemid' => $gradeitemid, 'userid' => $userid]);
 
+        // Set the grade item grademax to the user grade rawgrademax to account for excluding hiddens.
+        $gradeitem->grademax = $grade->rawgrademax;
+
         // Check if grade exists.
         if (!isset($grade->finalgrade) || $grade->finalgrade === null) {
             return $formattedgrades;
