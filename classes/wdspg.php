@@ -1385,10 +1385,6 @@ class wdspg {
             $gradecode = is_array($gradecode) ? reset($gradecode) : $gradecode;
         }
 
-//echo"<pre>";
-//var_dump($gradecode);
-//echo"</pre>";
-
         return $gradecode;
     }
 
@@ -1410,14 +1406,9 @@ class wdspg {
             get_string('firstname', 'block_wds_postgrades'),
             get_string('lastname', 'block_wds_postgrades'),
             get_string('universalid', 'block_wds_postgrades'),
-//            get_string('section', 'block_wds_postgrades'),
-//            get_string('gradingscheme', 'block_wds_postgrades'),
             get_string('gradingbasis', 'block_wds_postgrades'),
-//            get_string('real', 'grades'),
-//            get_string('percentage', 'grades'),
             get_string('letter', 'block_wds_postgrades'),
-            get_string('grade', 'block_wds_postgrades'),
-//            get_string('gradecode', 'block_wds_postgrades')
+            get_string('grade', 'block_wds_postgrades')
         ];
 
         // Get course grade item from first student.
@@ -1465,14 +1456,9 @@ class wdspg {
                 $student->firstname,
                 $student->lastname,
                 $student->universal_id,
-//                $sectionidentifier,
-//                $student->grading_scheme,
                 $student->grading_basis,
-//                $finalgrade->real,
-//                $finalgrade->percent,
                 $finalgrade->letter,
-                $gradecode->grade_display,
-//                $gradecode->grade_id,
+                $gradecode->grade_display
             ];
 
             // Populate it.
