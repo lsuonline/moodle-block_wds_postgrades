@@ -1123,9 +1123,7 @@ class wdspg {
         }
 
         // Get grade decimal points setting.
-        $gradedecimalpoints = !is_null($gradeitem->decimals) ?
-            $gradeitem->decimals :
-            $CFG->grade_decimalpoints;
+        $gradedecimalpoints = $gradeitem->get_decimals();
 
         // Format the grade according to different display types. Real.
         $formattedgrades->real = grade_format_gradevalue(
@@ -1360,7 +1358,7 @@ class wdspg {
         $gradecode = $DB->get_records($table, $parms);
 
         // Student has no final grade.
-        if (!$gradecode) {
+        if (!$gradecode || count($gradecode) == 0) {
             $gradecode = new \stdClass();
             $gradecode->grading_scheme_id = $student->grading_scheme;
             $gradecode->grading_basis = $student->grading_basis;
@@ -1386,6 +1384,10 @@ class wdspg {
             // Just return the object if it's an array.
             $gradecode = is_array($gradecode) ? reset($gradecode) : $gradecode;
         }
+
+//echo"<pre>";
+//var_dump($gradecode);
+//echo"</pre>";
 
         return $gradecode;
     }

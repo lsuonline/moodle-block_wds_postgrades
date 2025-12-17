@@ -495,12 +495,13 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
         if (!$gradecode) {
             continue;
         } else if ($gradecode->grade_display == 'No Grade') {
-            continue;
+            $gradecode->grade_display = 'No matching grade code';
+            // continue;
         }
 
         // Check if this is a failing grade.
-        $isfailinggrade = (in_array($gradecode->grade_display, ['F', 'Fail', 'No Credit (HNR)']) ||
-                          substr($gradecode->grade_id, -1) === 'F');
+        $isfailinggrade = isset($gradecode->requires_last_attendance) &&
+            $gradecode->requires_last_attendance == 1 ? true : false;
 
         // Count valid grades.
         $stats['available']++;
@@ -514,6 +515,17 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
             $finalgrade->letter,
             $gradecode->grade_display
         ];
+
+        if ($gradecode->grade_display == 'No matching grade code') {
+            $tablerow = [
+                $student->firstname,
+                $student->lastname,
+                $student->universal_id,
+                $student->grading_basis,
+                $finalgrade->letter,
+                html_writer::tag('div', $gradecode->grade_display, ['class' => 'small text-danger'])
+            ];
+        }
 
         // Status column.
         $status = 'Not posted';
@@ -614,7 +626,15 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
                     'Required for this grade value',
                     ['class' => 'small text-danger']);
             } else {
-                $attendancedatefield = get_string('lastattendancedatenotapplicable', 'block_wds_postgrades');
+
+                // This should NOT happen unless someone in Workday screws up.
+                if ($gradecode->grade_display == 'No matching grade code') {
+                    $attendancedatefield .= html_writer::tag('div',
+                        'Grade will not be posted to Workday',
+                        ['class' => 'small text-danger']);
+                } else {
+                    $attendancedatefield = get_string('lastattendancedatenotapplicable', 'block_wds_postgrades');
+                }
             }
         } else {
 
