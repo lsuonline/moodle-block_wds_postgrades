@@ -435,6 +435,8 @@ echo $OUTPUT->footer();
 function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $sectionid) {
     global $OUTPUT, $DB;
 
+    $neverseen = (int) get_config('block_wds_postgrades', 'neverseen');
+
     if (empty($enrolledstudents)) {
         echo get_string('nostudents', 'block_wds_postgrades');
         return;
@@ -591,7 +593,7 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
             if ($isfailinggrade) {
 
                 // Get student period start date.
-                $sps = $student->periodstart - (86400 * 10);
+                $sps = $student->periodstart - (86400 * $neverseen);
 
                 // Get default last access date.
                 $lastaccess = \block_wds_postgrades\wdspg::get_wds_sla($student->userid, $courseid);

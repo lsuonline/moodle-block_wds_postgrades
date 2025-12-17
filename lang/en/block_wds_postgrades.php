@@ -96,6 +96,8 @@ $string['gradesnotavailable'] = '{$a} grades posting is currently not available 
 $string['gradesfuture'] = '{$a->typeword} grades posting will be available in {$a->time}.';
 $string['gradespast'] = '{$a} grades posting is no longer available for this period.';
 $string['gradesopen'] = '{$a->typeword} grades posting is available. Time remaining: {$a->time}.';
+$string['neverseen'] = 'Non-Engaged-Student Date Preferences';
+$string['neverseendesc'] = 'Number of days <strong>prior</strong> to the course\'s semester start date for the default date for students who\'ve never accessed the course.';
 
 // Period configuration page strings
 $string['periodconfig'] = 'Grading Period Configuration';
