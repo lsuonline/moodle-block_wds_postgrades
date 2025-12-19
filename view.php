@@ -199,13 +199,18 @@ if ($action === 'postgrades' && confirm_sesskey()) {
                         $gradeobj->last_attendance_date = $submittedtimestamp;
                         $gradeobj->wdladate = $lastattendancedates[$student->universal_id];
                     } else {
+                        // Notify the user that their manual entry was invalid and corrected.
+                        \core\notification::error(get_string('alldatesmustcomply', 'block_wds_postgrades'));
 
-                        // Fallback to safe date.
+                        // Re-calculate the safe fallback.
                         $fallback = \block_wds_postgrades\wdspg::get_wds_sla($student->userid, $courseid);
+                        $lata = ($fallback && isset($fallback->timeaccess)) ? (int)$fallback->timeaccess : $minvalid;
 
-                        // Access the timeaccess property specifically.
-                        $gradeobj->last_attendance_date = ($fallback) ? (int)$fallback->timeaccess : 0;
-                        $gradeobj->wdladate = date('Y-m-d', $gradeobj->last_attendance_date);
+                        // Force the fallback to stay within the window.
+                        $lata = max($minvalid, min($maxvalid, $lata));
+
+                        $gradeobj->last_attendance_date = $lata;
+                        $gradeobj->wdladate = date('Y-m-d', $lata);
                     }
                 }
             } else {
@@ -305,10 +310,13 @@ if ($isopen) {
             // Implement the picker.
             $PAGE->requires->js_init_code("
                 require(['jquery'], function($) {
-                    $('.attendance-date-picker')
-                        .attr('type', 'date')
-                        .attr('min', '{$mindate}')
-                        .attr('max', '{$maxdate}');
+                    $('.attendance-date-picker').each(function() {
+                        var currentVal = $(this).val(); // Get the PHP-clamped value
+                        $(this).attr('type', 'date')
+                               .attr('min', '{$mindate}')
+                               .attr('max', '{$maxdate}')
+                               .val(currentVal); // Force the value back in after type change
+                    });
                 });
             ");
 
@@ -634,15 +642,15 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
         if (!isset($postedgrades[$student->universal_id])) {
             if ($isfailinggrade) {
 
-                // Get student period start date.
-                $sps = $student->periodstart + 86400;
+                // Define the absolute valid window for this specific student.
+                $minvalid = (int)$student->periodstart + 86400;
+                $maxvalid = (int)$student->periodend - 86400;
 
-                // Get default last access date.
+                // Get the raw last access record.
                 $lastaccess = \block_wds_postgrades\wdspg::get_wds_sla($student->userid, $courseid);
 
-                if (is_object($lastaccess) && $lastaccess->timeaccess + 86400 > $student->periodend) {
-                    $lastaccess->timeaccess = $student->periodend - 86400;
-                }
+                // Extract the timestamp safely.
+                $lata = ($lastaccess && isset($lastaccess->timeaccess)) ? (int)$lastaccess->timeaccess : $minvalid;
 
                 if (is_object($lastaccess) && $lastaccess->timeaccess - 86400 < $student->periodstart) {
                     $lastaccess->timeaccess = $student->periodstart + 86400;
@@ -659,10 +667,15 @@ function generateFinalGradesTableWithDatePickers($enrolledstudents, $courseid, $
                    $lata = 0;
                 }
 
+                // CLAMPING: If the date is outside the window, force it to the nearest boundary.
+                if ($lata < $minvalid) {
+                    $lata = $minvalid;
+                } else if ($lata > $maxvalid) {
+                    $lata = $maxvalid;
+                }
+
                 // Build out the default date for the picker.
-                $defaultdate = ($lata > 0) ?
-                    date('Y-m-d', $lata) :
-                    date('Y-m-d', $sps);
+                $defaultdate = date('Y-m-d', $lata);
 
                 // Create date picker.
                 $attendancedatefield = html_writer::empty_tag('input', [
