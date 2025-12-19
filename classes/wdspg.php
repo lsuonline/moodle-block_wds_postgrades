@@ -424,6 +424,11 @@ class wdspg {
             // Post grades one at a time.
             foreach ($grades as $grade) {
 
+                // We don't actually want to post these.
+                if ($grade->grade_id == 'No Grade') {
+                    continue;
+                }
+
                 // Create an array with just this student.
                 $singlegrade = array($grade);
 
@@ -454,12 +459,16 @@ class wdspg {
 
                     $results->failures[] = $grade;
                 } else {
-
                     // Success.
                     $results->successes[] = $grade;
                 }
             }
         } else {
+
+            // Remove "No Grade" grades from array.
+            $grades = array_values(array_filter($grades, function ($item) {
+                return $item->grade_id !== 'No Grade';
+            }));
 
             // Default to batch posting (all students at once).
             $result = self::post_grade($grades, $gradetype, $sectionlistingid);

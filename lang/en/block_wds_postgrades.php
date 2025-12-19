@@ -117,10 +117,11 @@ $string['remaininggrades'] = 'Posting {$a} remaining final grades.';
 
 // Last attendance date strings
 $string['lastattendancedate'] = 'Last Attendance Date';
-$string['lastattendancedaterequired'] = 'Required for failing grade';
+$string['alldatesmustcomply'] = 'All dates must reside within the start and end dates for this academic period.';
+$string['lastattendancedaterequired'] = 'Required for this grade value.<br>Date must fall within the start / end dates for this academic period.';
 $string['lastattendancedatenotapplicable'] = 'Not Required';
 $string['lastattendancedatemissing'] = 'A last attendance date is required for failing grades';
-$string['lastattendancedateinvalid'] = 'The last attendance date format is invalid';
+$string['lastattendancedateinvalid'] = 'The last attendance date is invalid and must be between the course academic period start and end dates.';
 $string['lastattendancedateexpired'] = 'The last attendance date cannot be in the future';
 $string['lastattendancedateexample'] = 'Format: YYYY-MM-DD';
 

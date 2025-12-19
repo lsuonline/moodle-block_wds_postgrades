@@ -77,15 +77,6 @@ if ($ADMIN->fulltree) {
         new moodle_url('/blocks/wds_postgrades/period_config.php')
     ));
 
-    // Add setting for never seen students.
-    $settings->add(new admin_setting_configtext(
-        'block_wds_postgrades/neverseen',
-        get_string('neverseen', 'block_wds_postgrades'),
-        get_string('neverseendesc', 'block_wds_postgrades'),
-        10,
-        PARAM_INT
-    ));
-
     // Create a link to the period configuration page.
     $periodconfigurl = new moodle_url('/blocks/wds_postgrades/period_config.php');
     $settings->add(new admin_setting_description(
